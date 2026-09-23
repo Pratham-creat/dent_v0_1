@@ -1,0 +1,4 @@
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/out/build/x64-Debug/CMakeFiles/dent_core.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/out/build/x64-Debug/CMakeFiles/dent.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir

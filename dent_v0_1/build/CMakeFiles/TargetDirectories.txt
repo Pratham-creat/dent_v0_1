@@ -1,0 +1,4 @@
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_core.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/ZERO_CHECK.dir
