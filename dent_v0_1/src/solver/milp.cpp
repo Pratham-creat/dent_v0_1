@@ -16,10 +16,15 @@ namespace dent {
 namespace {
 
 constexpr double EPS = 1e-9;
+
 constexpr int MAX_CUT_ROUNDS = 5;
-constexpr int MAX_NODE_DIVE_DEPTH = 8;
+
+constexpr int MAX_DIVE_DEPTH = 8;
+
 constexpr int MAX_STRONG_BRANCH_CANDIDATES = 4;
-constexpr int STRONG_BRANCH_ITERATIONS = 80;
+
+constexpr int STRONG_BRANCH_MAX_ITERATIONS = 80;
+
 
 bool is_branch_constraint(
     const Constraint& constraint
@@ -32,6 +37,7 @@ bool is_branch_constraint(
         ) == 0;
 }
 
+
 bool is_finite_upper_bound(
     const Variable& variable
 )
@@ -42,6 +48,7 @@ bool is_finite_upper_bound(
             variable.upper_bound
         );
 }
+
 
 double fractionality(
     double value
@@ -59,209 +66,17 @@ double fractionality(
     );
 }
 
-bool basis_shape_is_valid(
-    const WarmStart& warm_start,
-    int rows,
-    int columns
-)
-{
-    if (!warm_start.available) {
-        return false;
-    }
-
-    if (
-        warm_start.rows <= 0 ||
-        warm_start.columns <= 0
-    ) {
-        return false;
-    }
-
-    if (
-        rows <= warm_start.rows ||
-        columns <= warm_start.columns
-    ) {
-        return false;
-    }
-
-    if (
-        rows -
-            warm_start.rows !=
-        columns -
-            warm_start.columns
-    ) {
-        return false;
-    }
-
-    if (
-        static_cast<int>(
-            warm_start.basis.size()
-        ) != warm_start.rows
-    ) {
-        return false;
-    }
-
-    return true;
-}
-
-bool basis_indices_are_valid(
-    const std::vector<int>& basis,
-    int rows,
-    int columns
-)
-{
-    if (
-        static_cast<int>(
-            basis.size()
-        ) != rows
-    ) {
-        return false;
-    }
-
-    std::vector<bool> seen(
-        static_cast<std::size_t>(
-            columns
-        ),
-        false
-    );
-
-    for (
-        int column :
-        basis
-    ) {
-        if (
-            column < 0 ||
-            column >= columns
-        ) {
-            return false;
-        }
-
-        if (
-            seen[
-                static_cast<std::size_t>(
-                    column
-                )
-            ]
-        ) {
-            return false;
-        }
-
-        seen[
-            static_cast<std::size_t>(
-                column
-            )
-        ] = true;
-    }
-
-    return true;
-}
-
-/*
-    Check whether a variable vector satisfies the
-    LP relaxation represented by Problem.
-
-    This is deliberately independent of the MILP
-    integer restrictions because an LP node solution
-    is allowed to be fractional.
-*/
-bool relaxation_point_is_feasible(
-    const Problem& problem,
-    const std::vector<double>& values,
-    double tolerance
-)
-{
-    if (
-        values.size() !=
-        problem.variables().size()
-    ) {
-        return false;
-    }
-
-    for (
-        std::size_t j = 0;
-        j < values.size();
-        ++j
-    ) {
-        if (
-            values[j] <
-            problem.variables()[j].lower_bound -
-                tolerance
-        ) {
-            return false;
-        }
-
-        if (
-            is_finite_upper_bound(
-                problem.variables()[j]
-            ) &&
-            values[j] >
-            problem.variables()[j].upper_bound +
-                tolerance
-        ) {
-            return false;
-        }
-    }
-
-    for (
-        std::size_t i = 0;
-        i < problem.constraints().size();
-        ++i
-    ) {
-        const auto& constraint =
-            problem.constraints()[i];
-
-        double lhs = 0.0;
-
-        for (
-            std::size_t j = 0;
-            j < values.size();
-            ++j
-        ) {
-            lhs +=
-                problem.matrix()[i][j] *
-                values[j];
-        }
-
-        if (
-            constraint.sense ==
-            ConstraintSense::LessEqual
-        ) {
-            if (
-                lhs >
-                constraint.rhs +
-                    tolerance
-            ) {
-                return false;
-            }
-        }
-        else if (
-            constraint.sense ==
-            ConstraintSense::GreaterEqual
-        ) {
-            if (
-                lhs <
-                constraint.rhs -
-                    tolerance
-            ) {
-                return false;
-            }
-        }
-        else {
-            if (
-                std::abs(
-                    lhs -
-                    constraint.rhs
-                ) >
-                tolerance
-            ) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 } // namespace
+
+
+MILPSolver::MILPSolver(
+    double tolerance,
+    int max_nodes
+)
+    : tolerance_(tolerance),
+      max_nodes_(max_nodes)
+{
+}
 
 
 bool MILPSolver::NodeCompare::operator()(
@@ -300,16 +115,6 @@ bool MILPSolver::NodeCompare::operator()(
     return
         left.sequence >
         right.sequence;
-}
-
-
-MILPSolver::MILPSolver(
-    double tolerance,
-    int max_nodes
-)
-    : tolerance_(tolerance),
-      max_nodes_(max_nodes)
-{
 }
 
 
@@ -377,8 +182,11 @@ bool MILPSolver::is_integral_solution(
             VariableType::Binary
         ) {
             if (
-                nearest < -tolerance_ ||
-                nearest > 1.0 + tolerance_
+                nearest <
+                    -tolerance_ ||
+                nearest >
+                    1.0 +
+                    tolerance_
             ) {
                 return false;
             }
@@ -393,10 +201,12 @@ bool MILPSolver::is_integral_solution(
         }
 
         if (
-            is_finite_upper_bound(variable) &&
+            is_finite_upper_bound(
+                variable
+            ) &&
             nearest >
-                variable.upper_bound +
-                    tolerance_
+            variable.upper_bound +
+                tolerance_
         ) {
             return false;
         }
@@ -435,10 +245,12 @@ bool MILPSolver::check_feasibility(
         }
 
         if (
-            is_finite_upper_bound(variable) &&
+            is_finite_upper_bound(
+                variable
+            ) &&
             values[j] >
-                variable.upper_bound +
-                    tolerance_
+            variable.upper_bound +
+                tolerance_
         ) {
             return false;
         }
@@ -451,7 +263,8 @@ bool MILPSolver::check_feasibility(
                 values[j] <
                     -tolerance_ ||
                 values[j] >
-                    1.0 + tolerance_
+                    1.0 +
+                    tolerance_
             ) {
                 return false;
             }
@@ -519,60 +332,6 @@ bool MILPSolver::check_feasibility(
 }
 
 
-bool MILPSolver::better_objective(
-    ObjectiveSense sense,
-    double candidate,
-    double incumbent
-) const
-{
-    if (
-        sense ==
-        ObjectiveSense::Maximize
-    ) {
-        return
-            candidate >
-            incumbent +
-                tolerance_;
-    }
-
-    return
-        candidate <
-        incumbent -
-            tolerance_;
-}
-
-
-bool MILPSolver::bound_can_improve(
-    ObjectiveSense sense,
-    double bound,
-    bool has_incumbent,
-    double incumbent
-) const
-{
-    if (!has_incumbent) {
-        return true;
-    }
-
-    if (
-        sense ==
-        ObjectiveSense::Maximize
-    ) {
-        return
-            bound >
-            incumbent +
-                tolerance_;
-    }
-
-    return
-        bound <
-        incumbent -
-            tolerance_;
-}
-
-
-/*
-    Build canonical LP relaxation.
-*/
 Problem MILPSolver::build_lp_relaxation(
     const Problem& original
 ) const
@@ -581,6 +340,13 @@ Problem MILPSolver::build_lp_relaxation(
         original.objective_sense()
     );
 
+    /*
+        The current simplex implementation uses
+        x >= 0 as its canonical variable domain.
+
+        MILP variables therefore need zero lower bounds
+        at this stage.
+    */
     for (
         const auto& variable :
         original.variables()
@@ -610,128 +376,150 @@ Problem MILPSolver::build_lp_relaxation(
         );
     }
 
-    auto copy_constraint =
-        [&](const Constraint& source,
-            int source_index)
-    {
-        if (
-            source.sense ==
-            ConstraintSense::Equal
-        ) {
-            const int first =
-                relaxation.add_constraint(
-                    source.name + "_le",
-                    ConstraintSense::LessEqual,
-                    source.rhs
-                );
 
-            for (
-                std::size_t j = 0;
-                j < original.variables().size();
-                ++j
+    auto add_constraint_copy =
+        [&](
+            const Constraint& source,
+            int source_row
+        )
+        {
+            /*
+                Equality:
+
+                    a*x = b
+
+                becomes
+
+                    a*x <= b
+                    -a*x <= -b
+            */
+            if (
+                source.sense ==
+                ConstraintSense::Equal
             ) {
-                const double coefficient =
-                    original.matrix()
-                        [source_index][j];
+                const int first =
+                    relaxation.add_constraint(
+                        source.name + "_le",
+                        ConstraintSense::LessEqual,
+                        source.rhs
+                    );
 
-                if (
-                    std::abs(coefficient) >
-                    tolerance_
+                for (
+                    std::size_t j = 0;
+                    j < original.variables().size();
+                    ++j
                 ) {
-                    relaxation
-                        .set_constraint_coefficient(
-                            first,
-                            static_cast<int>(j),
-                            coefficient
-                        );
+                    const double coefficient =
+                        original.matrix()
+                            [source_row][j];
+
+                    if (
+                        std::abs(coefficient) >
+                        tolerance_
+                    ) {
+                        relaxation
+                            .set_constraint_coefficient(
+                                first,
+                                static_cast<int>(j),
+                                coefficient
+                            );
+                    }
                 }
-            }
 
-            const int second =
-                relaxation.add_constraint(
-                    source.name + "_ge",
-                    ConstraintSense::LessEqual,
-                    -source.rhs
-                );
 
-            for (
-                std::size_t j = 0;
-                j < original.variables().size();
-                ++j
-            ) {
-                const double coefficient =
-                    -original.matrix()
-                        [source_index][j];
+                const int second =
+                    relaxation.add_constraint(
+                        source.name + "_ge",
+                        ConstraintSense::LessEqual,
+                        -source.rhs
+                    );
 
-                if (
-                    std::abs(coefficient) >
-                    tolerance_
+                for (
+                    std::size_t j = 0;
+                    j < original.variables().size();
+                    ++j
                 ) {
-                    relaxation
-                        .set_constraint_coefficient(
-                            second,
-                            static_cast<int>(j),
-                            coefficient
-                        );
+                    const double coefficient =
+                        -original.matrix()
+                            [source_row][j];
+
+                    if (
+                        std::abs(coefficient) >
+                        tolerance_
+                    ) {
+                        relaxation
+                            .set_constraint_coefficient(
+                                second,
+                                static_cast<int>(j),
+                                coefficient
+                            );
+                    }
                 }
+
+                return;
             }
 
-            return;
-        }
 
-        ConstraintSense sense =
-            source.sense;
+            ConstraintSense sense =
+                source.sense;
 
-        double rhs =
-            source.rhs;
+            double rhs =
+                source.rhs;
 
-        const bool negate =
-            sense ==
-            ConstraintSense::GreaterEqual;
-
-        if (negate) {
-            sense =
-                ConstraintSense::LessEqual;
-
-            rhs =
-                -rhs;
-        }
-
-        const int row =
-            relaxation.add_constraint(
-                source.name,
-                sense,
-                rhs
-            );
-
-        for (
-            std::size_t j = 0;
-            j < original.variables().size();
-            ++j
-        ) {
-            double coefficient =
-                original.matrix()
-                    [source_index][j];
-
-            if (negate) {
-                coefficient =
-                    -coefficient;
-            }
+            bool negate =
+                false;
 
             if (
-                std::abs(coefficient) >
-                tolerance_
+                sense ==
+                ConstraintSense::GreaterEqual
             ) {
-                relaxation
-                    .set_constraint_coefficient(
-                        row,
-                        static_cast<int>(j),
-                        coefficient
-                    );
+                negate = true;
+                sense =
+                    ConstraintSense::LessEqual;
+                rhs = -rhs;
             }
-        }
-    };
 
+
+            const int row =
+                relaxation.add_constraint(
+                    source.name,
+                    sense,
+                    rhs
+                );
+
+
+            for (
+                std::size_t j = 0;
+                j < original.variables().size();
+                ++j
+            ) {
+                double coefficient =
+                    original.matrix()
+                        [source_row][j];
+
+                if (negate) {
+                    coefficient =
+                        -coefficient;
+                }
+
+                if (
+                    std::abs(coefficient) >
+                    tolerance_
+                ) {
+                    relaxation
+                        .set_constraint_coefficient(
+                            row,
+                            static_cast<int>(j),
+                            coefficient
+                        );
+                }
+            }
+        };
+
+
+    /*
+        Original constraints first.
+    */
     for (
         std::size_t i = 0;
         i < original.constraints().size();
@@ -748,12 +536,16 @@ Problem MILPSolver::build_lp_relaxation(
             continue;
         }
 
-        copy_constraint(
+        add_constraint_copy(
             constraint,
             static_cast<int>(i)
         );
     }
 
+
+    /*
+        Binary and finite upper bounds.
+    */
     for (
         std::size_t i = 0;
         i < original.variables().size();
@@ -781,7 +573,9 @@ Problem MILPSolver::build_lp_relaxation(
             );
         }
         else if (
-            is_finite_upper_bound(variable)
+            is_finite_upper_bound(
+                variable
+            )
         ) {
             const int row =
                 relaxation.add_constraint(
@@ -799,6 +593,13 @@ Problem MILPSolver::build_lp_relaxation(
         }
     }
 
+
+    /*
+        Branch constraints are appended last.
+
+        This keeps the node model construction
+        deterministic.
+    */
     for (
         std::size_t i = 0;
         i < original.constraints().size();
@@ -815,200 +616,66 @@ Problem MILPSolver::build_lp_relaxation(
             continue;
         }
 
-        copy_constraint(
+        add_constraint_copy(
             constraint,
             static_cast<int>(i)
         );
     }
 
+
     return relaxation;
 }
 
 
-/*
-    Solve a node LP.
-
-    Safe warm-start policy:
-
-        A parent basis may only be reused when the
-        parent's primal solution is feasible for the
-        child relaxation.
-
-    A branch normally makes the parent fractional
-    point infeasible. In that case the child is solved
-    cold.
-
-    This prevents an apparently valid basis from being
-    used to produce a stale parent objective.
-*/
 MILPSolver::LPNodeResult
 MILPSolver::solve_node_lp(
     const Problem& problem,
-    const WarmStart& parent_warm_start,
     MILPSolution& result
 ) const
 {
-    LPNodeResult node_result;
+    LPNodeResult node;
 
-    node_result.relaxation =
-        build_lp_relaxation(problem);
-
-    const int rows =
-        static_cast<int>(
-            node_result.relaxation
-                .constraints()
-                .size()
+    node.relaxation =
+        build_lp_relaxation(
+            problem
         );
 
-    const int variables =
-        static_cast<int>(
-            node_result.relaxation
-                .variables()
-                .size()
-        );
-
-    const int columns =
-        variables + rows;
-
-    bool used_warm_start = false;
 
     /*
-        We can only safely inherit the basis if the
-        parent primal point remains feasible.
+        IMPORTANT:
 
-        WarmStart::variable_values is captured by the
-        Simplex solver after a successful solve.
+        Do not pass a parent simplex basis here.
+
+        A MILP child changes the constraint matrix by
+        adding a branch row. The current Simplex
+        WarmStart representation is tied to the exact
+        structural signature of a problem.
+
+        Reusing that basis here was the source of the
+        Windows heap corruption.
+
+        A dedicated row-addition reoptimization
+        interface will be implemented later.
     */
-    const bool parent_point_feasible =
-        parent_warm_start.available &&
-        !parent_warm_start.variable_values.empty() &&
-        relaxation_point_is_feasible(
-            node_result.relaxation,
-            parent_warm_start.variable_values,
-            tolerance_
+    SimplexSolver simplex(
+        tolerance_,
+        2000
+    );
+
+
+    node.solve_result =
+        simplex.solve(
+            node.relaxation
         );
 
-    if (
-        parent_point_feasible &&
-        basis_shape_is_valid(
-            parent_warm_start,
-            rows,
-            columns
-        )
-    ) {
-        std::vector<int> basis =
-            parent_warm_start.basis;
-
-        const int added_rows =
-            rows -
-            parent_warm_start.rows;
-
-        for (
-            int k = 0;
-            k < added_rows;
-            ++k
-        ) {
-            basis.push_back(
-                parent_warm_start.columns +
-                k
-            );
-        }
-
-        if (
-            basis_indices_are_valid(
-                basis,
-                rows,
-                columns
-            )
-        ) {
-            WarmStart child_start =
-                make_basis_warm_start(
-                    node_result.relaxation,
-                    basis,
-                    rows,
-                    columns,
-                    parent_warm_start.variable_values,
-                    "milp-parent-basis"
-                );
-
-            SimplexSolver simplex(
-                tolerance_,
-                2000
-            );
-
-            simplex.set_warm_start(
-                child_start
-            );
-
-            SolveResult warm_result =
-                simplex.solve(
-                    node_result.relaxation
-                );
-
-            if (
-                warm_result.status ==
-                SolveStatus::Optimal &&
-                relaxation_point_is_feasible(
-                    node_result.relaxation,
-                    warm_result.variable_values,
-                    tolerance_
-                )
-            ) {
-                node_result.solve_result =
-                    std::move(warm_result);
-
-                node_result.warm_started =
-                    true;
-
-                ++result.warm_start_lp_solves;
-
-                node_result.next_warm_start =
-                    simplex.last_warm_start();
-
-                used_warm_start =
-                    true;
-            }
-        }
-    }
-
-    /*
-        Cold solve.
-
-        This is the authoritative fallback whenever
-        the inherited basis cannot safely be reused.
-    */
-    if (!used_warm_start) {
-        SimplexSolver simplex(
-            tolerance_,
-            2000
-        );
-
-        node_result.solve_result =
-            simplex.solve(
-                node_result.relaxation
-            );
-
-        node_result.warm_started =
-            false;
-
-        if (
-            node_result.solve_result.status ==
-            SolveStatus::Optimal
-        ) {
-            node_result.next_warm_start =
-                simplex.last_warm_start();
-        }
-    }
 
     ++result.lp_solves;
 
-    return node_result;
+
+    return node;
 }
 
 
-/*
-    Simple rounding incumbent heuristic.
-*/
 bool MILPSolver::try_rounding_heuristic(
     const Problem& problem,
     const std::vector<double>& lp_values,
@@ -1017,6 +684,15 @@ bool MILPSolver::try_rounding_heuristic(
 {
     integer_values =
         lp_values;
+
+
+    if (
+        integer_values.size() !=
+        problem.variables().size()
+    ) {
+        return false;
+    }
+
 
     for (
         std::size_t i = 0;
@@ -1033,7 +709,7 @@ bool MILPSolver::try_rounding_heuristic(
             continue;
         }
 
-        double value =
+        integer_values[i] =
             std::round(
                 integer_values[i]
             );
@@ -1042,39 +718,17 @@ bool MILPSolver::try_rounding_heuristic(
             variable.type ==
             VariableType::Binary
         ) {
-            value =
+            integer_values[i] =
                 std::clamp(
-                    value,
+                    integer_values[i],
                     0.0,
                     1.0
                 );
         }
-
-        value =
-            std::max(
-                value,
-                variable.lower_bound
-            );
-
-        if (
-            is_finite_upper_bound(variable)
-        ) {
-            value =
-                std::min(
-                    value,
-                    variable.upper_bound
-                );
-        }
-
-        integer_values[i] =
-            value;
     }
 
+
     return
-        is_integral_solution(
-            problem,
-            integer_values
-        ) &&
         check_feasibility(
             problem,
             integer_values
@@ -1082,9 +736,6 @@ bool MILPSolver::try_rounding_heuristic(
 }
 
 
-/*
-    Fractional diving heuristic.
-*/
 bool MILPSolver::try_diving_heuristic(
     const Problem& problem,
     const std::vector<double>& start_values,
@@ -1095,47 +746,32 @@ bool MILPSolver::try_diving_heuristic(
     Problem diving_problem =
         problem;
 
-    std::vector<double> current =
+    std::vector<double> values =
         start_values;
+
 
     for (
         int depth = 0;
-        depth < MAX_NODE_DIVE_DEPTH;
+        depth < MAX_DIVE_DEPTH;
         ++depth
     ) {
         ++result.heuristic_attempts;
 
-        if (
-            is_integral_solution(
-                diving_problem,
-                current
-            ) &&
-            check_feasibility(
-                diving_problem,
-                current
-            )
-        ) {
-            integer_values =
-                current;
 
-            return true;
-        }
-
-        int selected =
+        int branch_variable =
             -1;
 
-        double best =
-            std::numeric_limits<double>::infinity();
+        double best_fractionality =
+            0.0;
+
 
         for (
             std::size_t i = 0;
-            i < current.size();
+            i < values.size();
             ++i
         ) {
             if (
-                diving_problem
-                    .variables()[i]
-                    .type ==
+                problem.variables()[i].type ==
                 VariableType::Continuous
             ) {
                 continue;
@@ -1143,99 +779,112 @@ bool MILPSolver::try_diving_heuristic(
 
             const double f =
                 fractionality(
-                    current[i]
+                    values[i]
                 );
 
             if (
-                f <= tolerance_
+                f >
+                best_fractionality +
+                    tolerance_
             ) {
-                continue;
-            }
+                best_fractionality =
+                    f;
 
-            if (
-                f < best
-            ) {
-                best = f;
-                selected =
+                branch_variable =
                     static_cast<int>(i);
             }
         }
 
+
         if (
-            selected < 0
+            branch_variable < 0
         ) {
-            break;
+            if (
+                check_feasibility(
+                    problem,
+                    values
+                )
+            ) {
+                integer_values =
+                    values;
+
+                return true;
+            }
+
+            return false;
         }
 
+
         const double value =
-            current[selected];
+            values[
+                static_cast<std::size_t>(
+                    branch_variable
+                )
+            ];
 
-        const double down =
-            std::floor(value);
 
-        const double up =
-            std::ceil(value);
+        const double nearest =
+            std::round(value);
 
-        Problem candidate =
-            diving_problem;
-
-        const double chosen =
-            (
-                value - down <=
-                up - value
-            )
-                ? down
-                : up;
 
         const int row =
-            candidate.add_constraint(
-                "__dent_dive_fix_" +
+            diving_problem.add_constraint(
+                "__dent_dive_" +
                     std::to_string(depth),
                 ConstraintSense::Equal,
-                chosen
+                nearest
             );
 
-        candidate.set_constraint_coefficient(
-            row,
-            selected,
-            1.0
-        );
 
-        SimplexSolver solver(
-            tolerance_,
-            500
-        );
-
-        SolveResult lp =
-            solver.solve(
-                build_lp_relaxation(
-                    candidate
-                )
+        diving_problem
+            .set_constraint_coefficient(
+                row,
+                branch_variable,
+                1.0
             );
 
-        ++result.lp_solves;
+
+        LPNodeResult lp =
+            solve_node_lp(
+                diving_problem,
+                result
+            );
+
 
         if (
-            lp.status !=
+            lp.solve_result.status !=
             SolveStatus::Optimal
         ) {
             return false;
         }
 
-        current =
-            lp.variable_values;
 
-        diving_problem =
-            std::move(candidate);
+        values =
+            lp.solve_result.variable_values;
+
+
+        if (
+            is_integral_solution(
+                diving_problem,
+                values
+            ) &&
+            check_feasibility(
+                problem,
+                values
+            )
+        ) {
+            integer_values =
+                values;
+
+            return true;
+        }
     }
+
 
     return false;
 }
 
 
-/*
-    Cover separation.
-*/
 bool MILPSolver::add_cover_cuts(
     Problem& problem,
     const std::vector<double>& lp_values,
@@ -1245,19 +894,32 @@ bool MILPSolver::add_cover_cuts(
     bool added =
         false;
 
-    const std::size_t n =
-        problem.variables().size();
 
-    const std::size_t original_row_count =
+    /*
+        Only inspect constraints that existed when
+        this separation round started.
+
+        This prevents references from becoming invalid
+        when new constraints are appended.
+    */
+    const std::size_t original_rows =
         problem.constraints().size();
+
 
     for (
         std::size_t i = 0;
-        i < original_row_count;
+        i < original_rows;
         ++i
     ) {
+        /*
+            Copy the constraint.
+
+            add_constraint() may reallocate the
+            underlying vector.
+        */
         const Constraint constraint =
             problem.constraints()[i];
+
 
         if (
             constraint.sense !=
@@ -1266,24 +928,21 @@ bool MILPSolver::add_cover_cuts(
             continue;
         }
 
-        if (
-            constraint.rhs <
-            -tolerance_
-        ) {
-            continue;
-        }
 
-        struct Item {
+        struct Item
+        {
             int index;
             double coefficient;
             double lp_value;
         };
 
+
         std::vector<Item> items;
+
 
         for (
             std::size_t j = 0;
-            j < n;
+            j < problem.variables().size();
             ++j
         ) {
             const auto& variable =
@@ -1291,6 +950,7 @@ bool MILPSolver::add_cover_cuts(
 
             const double coefficient =
                 problem.matrix()[i][j];
+
 
             if (
                 variable.type ==
@@ -1308,17 +968,21 @@ bool MILPSolver::add_cover_cuts(
             }
         }
 
+
         if (
             items.size() < 2
         ) {
             continue;
         }
 
+
         std::sort(
             items.begin(),
             items.end(),
-            [](const Item& a,
-               const Item& b)
+            [](
+                const Item& a,
+                const Item& b
+            )
             {
                 return
                     a.coefficient >
@@ -1326,18 +990,24 @@ bool MILPSolver::add_cover_cuts(
             }
         );
 
+
         std::vector<Item> cover;
 
-        double weight = 0.0;
+        double weight =
+            0.0;
+
 
         for (
             const auto& item :
             items
         ) {
-            cover.push_back(item);
+            cover.push_back(
+                item
+            );
 
             weight +=
                 item.coefficient;
+
 
             if (
                 weight >
@@ -1348,6 +1018,7 @@ bool MILPSolver::add_cover_cuts(
             }
         }
 
+
         if (
             weight <=
             constraint.rhs +
@@ -1356,11 +1027,17 @@ bool MILPSolver::add_cover_cuts(
             continue;
         }
 
+
+        /*
+            Remove redundant final items while
+            the remaining cover is still a cover.
+        */
         while (
             cover.size() > 1
         ) {
             const Item last =
                 cover.back();
+
 
             if (
                 weight -
@@ -1378,7 +1055,10 @@ bool MILPSolver::add_cover_cuts(
             }
         }
 
-        double lhs = 0.0;
+
+        double lhs =
+            0.0;
+
 
         for (
             const auto& item :
@@ -1388,12 +1068,15 @@ bool MILPSolver::add_cover_cuts(
                 item.lp_value;
         }
 
+
         const double rhs =
             static_cast<double>(
                 cover.size() - 1
             );
 
+
         ++result.cuts_generated;
+
 
         if (
             lhs <=
@@ -1402,6 +1085,7 @@ bool MILPSolver::add_cover_cuts(
         ) {
             continue;
         }
+
 
         const int cut =
             problem.add_constraint(
@@ -1412,6 +1096,7 @@ bool MILPSolver::add_cover_cuts(
                 ConstraintSense::LessEqual,
                 rhs
             );
+
 
         for (
             const auto& item :
@@ -1424,10 +1109,12 @@ bool MILPSolver::add_cover_cuts(
             );
         }
 
+
         ++result.cuts_added;
 
         added = true;
     }
+
 
     return added;
 }
@@ -1442,6 +1129,7 @@ MILPSolver::build_branch_candidates(
     std::vector<BranchCandidate>
         candidates;
 
+
     for (
         std::size_t i = 0;
         i < values.size();
@@ -1454,16 +1142,20 @@ MILPSolver::build_branch_candidates(
             continue;
         }
 
+
         const double f =
             fractionality(
                 values[i]
             );
 
+
         if (
-            f <= tolerance_
+            f <=
+            tolerance_
         ) {
             continue;
         }
+
 
         BranchCandidate candidate;
 
@@ -1476,22 +1168,27 @@ MILPSolver::build_branch_candidates(
         candidate.fractionality =
             f;
 
+
         candidates.push_back(
             candidate
         );
     }
 
+
     std::sort(
         candidates.begin(),
         candidates.end(),
-        [](const BranchCandidate& a,
-           const BranchCandidate& b)
+        [](
+            const BranchCandidate& a,
+            const BranchCandidate& b
+        )
         {
             return
                 a.fractionality >
                 b.fractionality;
         }
     );
+
 
     if (
         candidates.size() >
@@ -1501,6 +1198,7 @@ MILPSolver::build_branch_candidates(
             MAX_STRONG_BRANCH_CANDIDATES
         );
     }
+
 
     return candidates;
 }
@@ -1515,8 +1213,10 @@ Problem MILPSolver::make_branch_down(
     Problem child =
         problem;
 
+
     const double floor_value =
         std::floor(value);
+
 
     const int row =
         child.add_constraint(
@@ -1530,11 +1230,13 @@ Problem MILPSolver::make_branch_down(
             floor_value
         );
 
+
     child.set_constraint_coefficient(
         row,
         variable,
         1.0
     );
+
 
     return child;
 }
@@ -1549,8 +1251,10 @@ Problem MILPSolver::make_branch_up(
     Problem child =
         problem;
 
+
     const double ceil_value =
         std::ceil(value);
+
 
     const int row =
         child.add_constraint(
@@ -1564,25 +1268,22 @@ Problem MILPSolver::make_branch_up(
             ceil_value
         );
 
+
     child.set_constraint_coefficient(
         row,
         variable,
         1.0
     );
 
+
     return child;
 }
 
 
-/*
-    Strong branching.
-*/
 MILPSolver::BranchCandidate
 MILPSolver::choose_strong_branch(
     const Problem& problem,
-    const std::vector<double>& values,
     const std::vector<BranchCandidate>& candidates,
-    const WarmStart& parent_warm_start,
     double parent_bound,
     MILPSolution& result
 ) const
@@ -1593,11 +1294,14 @@ MILPSolver::choose_strong_branch(
         return {};
     }
 
+
     BranchCandidate best =
         candidates.front();
 
+
     best.score =
         -std::numeric_limits<double>::infinity();
+
 
     for (
         auto candidate :
@@ -1610,6 +1314,7 @@ MILPSolver::choose_strong_branch(
                 candidate.value
             );
 
+
         Problem up =
             make_branch_up(
                 problem,
@@ -1617,20 +1322,31 @@ MILPSolver::choose_strong_branch(
                 candidate.value
             );
 
-        MILPSolution probe_down_result;
+
+        MILPSolution down_stats;
 
         LPNodeResult down_lp =
             solve_node_lp(
                 down,
-                parent_warm_start,
-                probe_down_result
+                down_stats
             );
+
 
         ++result.strong_branching_solves;
 
-        double down_gain = 0.0;
+
+        double down_gain =
+            0.0;
+
 
         if (
+            down_lp.solve_result.status ==
+            SolveStatus::Infeasible
+        ) {
+            down_gain =
+                std::numeric_limits<double>::infinity();
+        }
+        else if (
             down_lp.solve_result.status ==
             SolveStatus::Optimal
         ) {
@@ -1656,28 +1372,32 @@ MILPSolver::choose_strong_branch(
                     );
             }
         }
-        else if (
-            down_lp.solve_result.status ==
-            SolveStatus::Infeasible
-        ) {
-            down_gain =
-                std::numeric_limits<double>::infinity();
-        }
 
-        MILPSolution probe_up_result;
+
+        MILPSolution up_stats;
 
         LPNodeResult up_lp =
             solve_node_lp(
                 up,
-                parent_warm_start,
-                probe_up_result
+                up_stats
             );
+
 
         ++result.strong_branching_solves;
 
-        double up_gain = 0.0;
+
+        double up_gain =
+            0.0;
+
 
         if (
+            up_lp.solve_result.status ==
+            SolveStatus::Infeasible
+        ) {
+            up_gain =
+                std::numeric_limits<double>::infinity();
+        }
+        else if (
             up_lp.solve_result.status ==
             SolveStatus::Optimal
         ) {
@@ -1703,19 +1423,14 @@ MILPSolver::choose_strong_branch(
                     );
             }
         }
-        else if (
-            up_lp.solve_result.status ==
-            SolveStatus::Infeasible
-        ) {
-            up_gain =
-                std::numeric_limits<double>::infinity();
-        }
+
 
         candidate.down_gain =
             down_gain;
 
         candidate.up_gain =
             up_gain;
+
 
         if (
             std::isinf(down_gain) ||
@@ -1732,6 +1447,7 @@ MILPSolver::choose_strong_branch(
                 );
         }
 
+
         if (
             candidate.score >
             best.score
@@ -1741,396 +1457,99 @@ MILPSolver::choose_strong_branch(
         }
     }
 
-    if (
-        !std::isfinite(best.score)
-    ) {
-        for (
-            const auto& candidate :
-            candidates
-        ) {
-            if (
-                candidate.fractionality >
-                best.fractionality
-            ) {
-                best =
-                    candidate;
-            }
-        }
-    }
 
     return best;
 }
 
 
-void MILPSolver::branch_and_cut(
-    const Problem& problem,
-    int depth,
-    const WarmStart& parent_warm_start,
-    MILPSolution& result,
-    bool& has_incumbent,
-    double& incumbent_objective,
-    std::vector<double>& incumbent_values
+bool MILPSolver::better_objective(
+    ObjectiveSense sense,
+    double candidate,
+    double incumbent
 ) const
 {
     if (
-        result.nodes_explored >=
-        max_nodes_
+        sense ==
+        ObjectiveSense::Maximize
     ) {
-        return;
+        return
+            candidate >
+            incumbent +
+                tolerance_;
     }
 
-    ++result.nodes_explored;
 
-    LPNodeResult node =
-        solve_node_lp(
-            problem,
-            parent_warm_start,
-            result
+    return
+        candidate <
+        incumbent -
+            tolerance_;
+}
+
+
+bool MILPSolver::bound_can_improve(
+    ObjectiveSense sense,
+    double bound,
+    bool has_incumbent,
+    double incumbent
+) const
+{
+    if (
+        !has_incumbent
+    ) {
+        return true;
+    }
+
+
+    if (
+        sense ==
+        ObjectiveSense::Maximize
+    ) {
+        return
+            bound >
+            incumbent +
+                tolerance_;
+    }
+
+
+    return
+        bound <
+        incumbent -
+            tolerance_;
+}
+
+
+double MILPSolver::calculate_relative_gap(
+    ObjectiveSense sense,
+    double incumbent,
+    double bound
+) const
+{
+    const double denominator =
+        std::max(
+            1.0,
+            std::abs(incumbent)
         );
 
-    if (
-        node.solve_result.status ==
-        SolveStatus::Infeasible
-    ) {
-        ++result.nodes_pruned;
-        return;
-    }
 
     if (
-        node.solve_result.status !=
-        SolveStatus::Optimal
+        sense ==
+        ObjectiveSense::Maximize
     ) {
-        ++result.nodes_pruned;
-        return;
-    }
-
-    double node_bound =
-        node.solve_result.objective_value;
-
-    result.best_bound =
-        node_bound;
-
-    Problem strengthened =
-        problem;
-
-    WarmStart cut_warm_start =
-        node.next_warm_start;
-
-    SolveResult current_lp =
-        node.solve_result;
-
-    for (
-        int round = 0;
-        round < MAX_CUT_ROUNDS;
-        ++round
-    ) {
-        if (
-            is_integral_solution(
-                strengthened,
-                current_lp.variable_values
-            )
-        ) {
-            break;
-        }
-
-        const int old_cuts =
-            result.cuts_added;
-
-        const bool generated =
-            add_cover_cuts(
-                strengthened,
-                current_lp.variable_values,
-                result
+        return
+            std::max(
+                0.0,
+                (bound - incumbent) /
+                    denominator
             );
-
-        if (
-            !generated ||
-            result.cuts_added ==
-                old_cuts
-        ) {
-            break;
-        }
-
-        LPNodeResult cut_node =
-            solve_node_lp(
-                strengthened,
-                cut_warm_start,
-                result
-            );
-
-        if (
-            cut_node.solve_result.status ==
-            SolveStatus::Infeasible
-        ) {
-            ++result.nodes_pruned;
-            return;
-        }
-
-        if (
-            cut_node.solve_result.status !=
-            SolveStatus::Optimal
-        ) {
-            break;
-        }
-
-        current_lp =
-            cut_node.solve_result;
-
-        cut_warm_start =
-            cut_node.next_warm_start;
-
-        node_bound =
-            current_lp.objective_value;
-
-        result.best_bound =
-            node_bound;
     }
 
-    std::vector<double> heuristic_values;
 
-    if (
-        try_rounding_heuristic(
-            strengthened,
-            current_lp.variable_values,
-            heuristic_values
-        )
-    ) {
-        double objective = 0.0;
-
-        for (
-            std::size_t i = 0;
-            i < heuristic_values.size();
-            ++i
-        ) {
-            objective +=
-                strengthened.objective()[i] *
-                heuristic_values[i];
-        }
-
-        if (
-            !has_incumbent ||
-            better_objective(
-                strengthened.objective_sense(),
-                objective,
-                incumbent_objective
-            )
-        ) {
-            has_incumbent =
-                true;
-
-            incumbent_objective =
-                objective;
-
-            incumbent_values =
-                heuristic_values;
-
-            ++result.heuristic_incumbents;
-        }
-    }
-
-    if (
-        !is_integral_solution(
-            strengthened,
-            current_lp.variable_values
-        )
-    ) {
-        std::vector<double> diving_values;
-
-        if (
-            try_diving_heuristic(
-                strengthened,
-                current_lp.variable_values,
-                diving_values,
-                result
-            )
-        ) {
-            double objective = 0.0;
-
-            for (
-                std::size_t i = 0;
-                i < diving_values.size();
-                ++i
-            ) {
-                objective +=
-                    strengthened.objective()[i] *
-                    diving_values[i];
-            }
-
-            if (
-                !has_incumbent ||
-                better_objective(
-                    strengthened.objective_sense(),
-                    objective,
-                    incumbent_objective
-                )
-            ) {
-                has_incumbent =
-                    true;
-
-                incumbent_objective =
-                    objective;
-
-                incumbent_values =
-                    diving_values;
-
-                ++result.heuristic_incumbents;
-            }
-        }
-    }
-
-    if (
-        !bound_can_improve(
-            strengthened.objective_sense(),
-            node_bound,
-            has_incumbent,
-            incumbent_objective
-        )
-    ) {
-        ++result.nodes_pruned;
-        return;
-    }
-
-    if (
-        is_integral_solution(
-            strengthened,
-            current_lp.variable_values
-        )
-    ) {
-        const double objective =
-            current_lp.objective_value;
-
-        if (
-            !has_incumbent ||
-            better_objective(
-                strengthened.objective_sense(),
-                objective,
-                incumbent_objective
-            )
-        ) {
-            has_incumbent =
-                true;
-
-            incumbent_objective =
-                objective;
-
-            incumbent_values =
-                current_lp.variable_values;
-        }
-
-        return;
-    }
-
-    const auto candidates =
-        build_branch_candidates(
-            strengthened,
-            current_lp.variable_values
+    return
+        std::max(
+            0.0,
+            (incumbent - bound) /
+                denominator
         );
-
-    if (
-        candidates.empty()
-    ) {
-        ++result.nodes_pruned;
-        return;
-    }
-
-    BranchCandidate selected =
-        choose_strong_branch(
-            strengthened,
-            current_lp.variable_values,
-            candidates,
-            cut_warm_start,
-            node_bound,
-            result
-        );
-
-    if (
-        selected.variable < 0
-    ) {
-        selected =
-            candidates.front();
-    }
-
-    Problem left =
-        make_branch_down(
-            strengthened,
-            selected.variable,
-            selected.value
-        );
-
-    Problem right =
-        make_branch_up(
-            strengthened,
-            selected.variable,
-            selected.value
-        );
-
-    const double down_distance =
-        selected.value -
-        std::floor(
-            selected.value
-        );
-
-    const double up_distance =
-        std::ceil(
-            selected.value
-        ) -
-        selected.value;
-
-    if (
-        down_distance <=
-        up_distance
-    ) {
-        branch_and_cut(
-            left,
-            depth + 1,
-            cut_warm_start,
-            result,
-            has_incumbent,
-            incumbent_objective,
-            incumbent_values
-        );
-
-        if (
-            result.nodes_explored <
-            max_nodes_
-        ) {
-            branch_and_cut(
-                right,
-                depth + 1,
-                cut_warm_start,
-                result,
-                has_incumbent,
-                incumbent_objective,
-                incumbent_values
-            );
-        }
-    }
-    else {
-        branch_and_cut(
-            right,
-            depth + 1,
-            cut_warm_start,
-            result,
-            has_incumbent,
-            incumbent_objective,
-            incumbent_values
-        );
-
-        if (
-            result.nodes_explored <
-            max_nodes_
-        ) {
-            branch_and_cut(
-                left,
-                depth + 1,
-                cut_warm_start,
-                result,
-                has_incumbent,
-                incumbent_objective,
-                incumbent_values
-            );
-        }
-    }
 }
 
 
@@ -2140,16 +1559,26 @@ MILPSolution MILPSolver::solve(
 {
     MILPSolution result;
 
+
+    /*
+        Continuous problem.
+    */
     if (
-        !is_integer_problem(problem)
+        !is_integer_problem(
+            problem
+        )
     ) {
         SimplexSolver simplex(
             tolerance_,
             2000
         );
 
+
         SolveResult lp =
-            simplex.solve(problem);
+            simplex.solve(
+                problem
+            );
+
 
         result.status =
             lp.status;
@@ -2170,77 +1599,656 @@ MILPSolution MILPSolver::solve(
             "No integer variables. "
             "Problem solved as LP.";
 
+
         return result;
     }
+
+
+    using Queue =
+        std::priority_queue<
+            Node,
+            std::vector<Node>,
+            NodeCompare
+        >;
+
+
+    Queue open_nodes(
+        NodeCompare{
+            problem.objective_sense()
+        }
+    );
+
+
+    std::size_t sequence =
+        0;
+
+
+    /*
+        Root has an infinite bound before its LP
+        relaxation is solved.
+    */
+    const double initial_bound =
+        problem.objective_sense() ==
+            ObjectiveSense::Maximize
+        ? std::numeric_limits<double>::infinity()
+        : -std::numeric_limits<double>::infinity();
+
+
+    open_nodes.push(
+        Node{
+            problem,
+            initial_bound,
+            0,
+            sequence++
+        }
+    );
+
 
     bool has_incumbent =
         false;
 
+
     double incumbent_objective =
         0.0;
 
-    std::vector<double> incumbent_values;
 
-    branch_and_cut(
-        problem,
-        0,
-        WarmStart{},
-        result,
-        has_incumbent,
-        incumbent_objective,
-        incumbent_values
-    );
+    std::vector<double>
+        incumbent_values;
 
-    if (
-        has_incumbent
+
+    double global_best_bound =
+        initial_bound;
+
+
+    /*
+        Actual best-bound Branch-and-Cut loop.
+    */
+    while (
+        !open_nodes.empty() &&
+        result.nodes_explored < max_nodes_
     ) {
-        result.status =
-            SolveStatus::Optimal;
+        Node node =
+            open_nodes.top();
 
-        result.objective_value =
-            incumbent_objective;
+        open_nodes.pop();
 
-        result.variable_values =
-            incumbent_values;
+
+        ++result.nodes_explored;
+
+
+        LPNodeResult lp =
+            solve_node_lp(
+                node.problem,
+                result
+            );
+
 
         if (
-            result.nodes_explored >=
-            max_nodes_
+            lp.solve_result.status ==
+            SolveStatus::Infeasible
         ) {
+            ++result.nodes_pruned;
+            continue;
+        }
+
+
+        if (
+            lp.solve_result.status !=
+            SolveStatus::Optimal
+        ) {
+            ++result.nodes_pruned;
+            continue;
+        }
+
+
+        Problem strengthened =
+            node.problem;
+
+
+        SolveResult current_lp =
+            lp.solve_result;
+
+
+        double node_bound =
+            current_lp.objective_value;
+
+
+        /*
+            Cover-cut separation.
+        */
+        for (
+            int round = 0;
+            round < MAX_CUT_ROUNDS;
+            ++round
+        ) {
+            if (
+                is_integral_solution(
+                    strengthened,
+                    current_lp.variable_values
+                )
+            ) {
+                break;
+            }
+
+
+            const int cuts_before =
+                result.cuts_added;
+
+
+            const bool generated =
+                add_cover_cuts(
+                    strengthened,
+                    current_lp.variable_values,
+                    result
+                );
+
+
+            if (
+                !generated ||
+                result.cuts_added ==
+                    cuts_before
+            ) {
+                break;
+            }
+
+
+            LPNodeResult cut_lp =
+                solve_node_lp(
+                    strengthened,
+                    result
+                );
+
+
+            if (
+                cut_lp.solve_result.status ==
+                SolveStatus::Infeasible
+            ) {
+                ++result.nodes_pruned;
+                current_lp.status =
+                    SolveStatus::Infeasible;
+                break;
+            }
+
+
+            if (
+                cut_lp.solve_result.status !=
+                SolveStatus::Optimal
+            ) {
+                break;
+            }
+
+
+            current_lp =
+                cut_lp.solve_result;
+
+
+            node_bound =
+                current_lp.objective_value;
+        }
+
+
+        if (
+            current_lp.status ==
+            SolveStatus::Infeasible
+        ) {
+            continue;
+        }
+
+
+        /*
+            Rounding heuristic.
+        */
+        ++result.heuristic_attempts;
+
+
+        std::vector<double>
+            rounded_values;
+
+
+        if (
+            try_rounding_heuristic(
+                strengthened,
+                current_lp.variable_values,
+                rounded_values
+            )
+        ) {
+            double objective =
+                0.0;
+
+
+            for (
+                std::size_t i = 0;
+                i < rounded_values.size();
+                ++i
+            ) {
+                objective +=
+                    strengthened.objective()[i] *
+                    rounded_values[i];
+            }
+
+
+            if (
+                !has_incumbent ||
+                better_objective(
+                    strengthened.objective_sense(),
+                    objective,
+                    incumbent_objective
+                )
+            ) {
+                has_incumbent =
+                    true;
+
+                incumbent_objective =
+                    objective;
+
+                incumbent_values =
+                    rounded_values;
+
+                ++result.heuristic_incumbents;
+            }
+        }
+
+
+        /*
+            Diving heuristic.
+        */
+        if (
+            !is_integral_solution(
+                strengthened,
+                current_lp.variable_values
+            )
+        ) {
+            std::vector<double>
+                diving_values;
+
+
+            if (
+                try_diving_heuristic(
+                    strengthened,
+                    current_lp.variable_values,
+                    diving_values,
+                    result
+                )
+            ) {
+                double objective =
+                    0.0;
+
+
+                for (
+                    std::size_t i = 0;
+                    i < diving_values.size();
+                    ++i
+                ) {
+                    objective +=
+                        strengthened.objective()[i] *
+                        diving_values[i];
+                }
+
+
+                if (
+                    !has_incumbent ||
+                    better_objective(
+                        strengthened.objective_sense(),
+                        objective,
+                        incumbent_objective
+                    )
+                ) {
+                    has_incumbent =
+                        true;
+
+                    incumbent_objective =
+                        objective;
+
+                    incumbent_values =
+                        diving_values;
+
+                    ++result.heuristic_incumbents;
+                }
+            }
+        }
+
+
+        /*
+            Incumbent pruning.
+        */
+        if (
+            !bound_can_improve(
+                strengthened.objective_sense(),
+                node_bound,
+                has_incumbent,
+                incumbent_objective
+            )
+        ) {
+            ++result.nodes_pruned;
+            continue;
+        }
+
+
+        /*
+            Integer LP solution.
+        */
+        if (
+            is_integral_solution(
+                strengthened,
+                current_lp.variable_values
+            )
+        ) {
+            const double objective =
+                current_lp.objective_value;
+
+
+            if (
+                !has_incumbent ||
+                better_objective(
+                    strengthened.objective_sense(),
+                    objective,
+                    incumbent_objective
+                )
+            ) {
+                has_incumbent =
+                    true;
+
+                incumbent_objective =
+                    objective;
+
+                incumbent_values =
+                    current_lp.variable_values;
+            }
+
+
+            continue;
+        }
+
+
+        /*
+            Select branching candidates.
+        */
+        const auto candidates =
+            build_branch_candidates(
+                strengthened,
+                current_lp.variable_values
+            );
+
+
+        if (
+            candidates.empty()
+        ) {
+            ++result.nodes_pruned;
+            continue;
+        }
+
+
+        /*
+            Strong branching.
+        */
+        BranchCandidate selected =
+            choose_strong_branch(
+                strengthened,
+                candidates,
+                node_bound,
+                result
+            );
+
+
+        if (
+            selected.variable < 0
+        ) {
+            selected =
+                candidates.front();
+        }
+
+
+        /*
+            Create the two children.
+        */
+        Problem down =
+            make_branch_down(
+                strengthened,
+                selected.variable,
+                selected.value
+            );
+
+
+        Problem up =
+            make_branch_up(
+                strengthened,
+                selected.variable,
+                selected.value
+            );
+
+
+        /*
+            We already solved both children during
+            strong branching, so use those estimates
+            as ordering bounds when available.
+
+            For safety, fall back to the parent's
+            relaxation bound.
+        */
+        double down_bound =
+            node_bound;
+
+
+        double up_bound =
+            node_bound;
+
+
+        if (
+            std::isfinite(
+                selected.down_gain
+            )
+        ) {
+            if (
+                strengthened.objective_sense() ==
+                ObjectiveSense::Maximize
+            ) {
+                down_bound =
+                    node_bound -
+                    selected.down_gain;
+            }
+            else {
+                down_bound =
+                    node_bound +
+                    selected.down_gain;
+            }
+        }
+
+
+        if (
+            std::isfinite(
+                selected.up_gain
+            )
+        ) {
+            if (
+                strengthened.objective_sense() ==
+                ObjectiveSense::Maximize
+            ) {
+                up_bound =
+                    node_bound -
+                    selected.up_gain;
+            }
+            else {
+                up_bound =
+                    node_bound +
+                    selected.up_gain;
+            }
+        }
+
+
+        /*
+            Do not enqueue a child that cannot beat
+            the incumbent.
+        */
+        if (
+            bound_can_improve(
+                strengthened.objective_sense(),
+                down_bound,
+                has_incumbent,
+                incumbent_objective
+            )
+        ) {
+            open_nodes.push(
+                Node{
+                    std::move(down),
+                    down_bound,
+                    node.depth + 1,
+                    sequence++
+                }
+            );
+        }
+        else {
+            ++result.nodes_pruned;
+        }
+
+
+        if (
+            bound_can_improve(
+                strengthened.objective_sense(),
+                up_bound,
+                has_incumbent,
+                incumbent_objective
+            )
+        ) {
+            open_nodes.push(
+                Node{
+                    std::move(up),
+                    up_bound,
+                    node.depth + 1,
+                    sequence++
+                }
+            );
+        }
+        else {
+            ++result.nodes_pruned;
+        }
+
+
+        result.max_open_nodes =
+            std::max(
+                result.max_open_nodes,
+                static_cast<int>(
+                    open_nodes.size()
+                )
+            );
+
+
+        if (
+            !open_nodes.empty()
+        ) {
+            global_best_bound =
+                open_nodes.top().bound;
+        }
+        else {
+            global_best_bound =
+                node_bound;
+        }
+
+
+        result.best_bound =
+            global_best_bound;
+
+
+        if (
+            has_incumbent
+        ) {
+            result.relative_gap =
+                calculate_relative_gap(
+                    strengthened.objective_sense(),
+                    incumbent_objective,
+                    global_best_bound
+                );
+
+
+            if (
+                result.relative_gap <=
+                tolerance_
+            ) {
+                break;
+            }
+        }
+    }
+
+
+    /*
+        No integer solution found.
+    */
+    if (
+        !has_incumbent
+    ) {
+        if (
+            open_nodes.empty()
+        ) {
+            result.status =
+                SolveStatus::Infeasible;
+
+            result.message =
+                "No feasible integer solution exists.";
+        }
+        else {
             result.status =
                 SolveStatus::IterationLimit;
 
             result.message =
-                "MILP node limit reached. "
-                "Best incumbent returned.";
+                "MILP node limit reached before "
+                "finding an integer solution.";
         }
-        else {
-            result.message =
-                "MILP solved using strengthened "
-                "Branch-and-Cut with best-bound "
-                "node management, incumbent heuristics, "
-                "cover-cut separation, strong branching, "
-                "and LP basis warm starts.";
-        }
+
+
+        return result;
     }
-    else if (
-        result.nodes_explored >=
-        max_nodes_
+
+
+    result.objective_value =
+        incumbent_objective;
+
+    result.variable_values =
+        incumbent_values;
+
+
+    /*
+        If the queue is empty, the incumbent is proven
+        optimal.
+
+        If the queue still contains nodes and the node
+        limit was reached, return IterationLimit.
+    */
+    if (
+        open_nodes.empty()
     ) {
         result.status =
-            SolveStatus::IterationLimit;
+            SolveStatus::Optimal;
+
+        result.best_bound =
+            incumbent_objective;
+
+        result.relative_gap =
+            0.0;
 
         result.message =
-            "MILP node limit reached before "
-            "finding an integer solution.";
+            "MILP solved using Branch-and-Cut with "
+            "best-bound node management, incumbent "
+            "heuristics, cover-cut separation, and "
+            "strong branching.";
     }
     else {
         result.status =
-            SolveStatus::Infeasible;
+            SolveStatus::IterationLimit;
+
+        result.best_bound =
+            open_nodes.top().bound;
+
+        result.relative_gap =
+            calculate_relative_gap(
+                problem.objective_sense(),
+                incumbent_objective,
+                result.best_bound
+            );
 
         result.message =
-            "No feasible integer solution exists.";
+            "MILP node limit reached. "
+            "Best incumbent returned.";
     }
+
 
     return result;
 }

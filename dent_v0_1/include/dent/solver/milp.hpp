@@ -2,15 +2,16 @@
 
 #include "dent/model/problem.hpp"
 #include "dent/solver/simplex.hpp"
-#include "dent/warmstart/warm_start.hpp"
 
+#include <cstddef>
+#include <queue>
 #include <string>
 #include <vector>
 
 namespace dent {
 
-struct MILPSolution {
-
+struct MILPSolution
+{
     SolveStatus status =
         SolveStatus::Unsupported;
 
@@ -58,7 +59,9 @@ struct MILPSolution {
     std::string message;
 };
 
-class MILPSolver {
+
+class MILPSolver
+{
 public:
 
     explicit MILPSolver(
@@ -72,8 +75,8 @@ public:
 
 private:
 
-    struct Node {
-
+    struct Node
+    {
         Problem problem;
 
         double bound =
@@ -82,14 +85,13 @@ private:
         int depth =
             0;
 
-        WarmStart parent_warm_start;
-
         std::size_t sequence =
             0;
     };
 
-    struct NodeCompare {
 
+    struct NodeCompare
+    {
         ObjectiveSense sense =
             ObjectiveSense::Maximize;
 
@@ -99,20 +101,17 @@ private:
         ) const;
     };
 
-    struct LPNodeResult {
 
+    struct LPNodeResult
+    {
         SolveResult solve_result;
 
         Problem relaxation;
-
-        WarmStart next_warm_start;
-
-        bool warm_started =
-            false;
     };
 
-    struct BranchCandidate {
 
+    struct BranchCandidate
+    {
         int variable =
             -1;
 
@@ -132,39 +131,46 @@ private:
             0.0;
     };
 
+
     double tolerance_;
 
     int max_nodes_;
 
+
     bool is_integer_problem(
         const Problem& problem
     ) const;
+
 
     bool is_integral_solution(
         const Problem& problem,
         const std::vector<double>& values
     ) const;
 
-    int choose_branch_variable(
+
+    bool check_feasibility(
         const Problem& problem,
         const std::vector<double>& values
     ) const;
+
 
     Problem build_lp_relaxation(
         const Problem& original
     ) const;
 
+
     LPNodeResult solve_node_lp(
         const Problem& problem,
-        const WarmStart& parent_warm_start,
         MILPSolution& result
     ) const;
+
 
     bool try_rounding_heuristic(
         const Problem& problem,
         const std::vector<double>& lp_values,
         std::vector<double>& integer_values
     ) const;
+
 
     bool try_diving_heuristic(
         const Problem& problem,
@@ -173,10 +179,6 @@ private:
         MILPSolution& result
     ) const;
 
-    bool check_feasibility(
-        const Problem& problem,
-        const std::vector<double>& values
-    ) const;
 
     bool add_cover_cuts(
         Problem& problem,
@@ -184,19 +186,21 @@ private:
         MILPSolution& result
     ) const;
 
-    std::vector<BranchCandidate> build_branch_candidates(
+
+    std::vector<BranchCandidate>
+    build_branch_candidates(
         const Problem& problem,
         const std::vector<double>& values
     ) const;
 
+
     BranchCandidate choose_strong_branch(
         const Problem& problem,
-        const std::vector<double>& values,
         const std::vector<BranchCandidate>& candidates,
-        const WarmStart& parent_warm_start,
         double parent_bound,
         MILPSolution& result
     ) const;
+
 
     Problem make_branch_down(
         const Problem& problem,
@@ -204,17 +208,20 @@ private:
         double value
     ) const;
 
+
     Problem make_branch_up(
         const Problem& problem,
         int variable,
         double value
     ) const;
 
+
     bool better_objective(
         ObjectiveSense sense,
         double candidate,
         double incumbent
     ) const;
+
 
     bool bound_can_improve(
         ObjectiveSense sense,
@@ -223,14 +230,11 @@ private:
         double incumbent
     ) const;
 
-    void branch_and_cut(
-        const Problem& problem,
-        int depth,
-        const WarmStart& parent_warm_start,
-        MILPSolution& result,
-        bool& has_incumbent,
-        double& incumbent_objective,
-        std::vector<double>& incumbent_values
+
+    double calculate_relative_gap(
+        ObjectiveSense sense,
+        double incumbent,
+        double bound
     ) const;
 };
 

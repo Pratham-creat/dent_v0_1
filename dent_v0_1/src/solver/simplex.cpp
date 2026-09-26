@@ -140,14 +140,26 @@ SimplexTableau build_tableau(
         const auto& constraint :
         problem.constraints()
     ) {
+        ConstraintSense sense =
+            constraint.sense;
+
+        if (constraint.rhs < -EPS) {
+            if (sense == ConstraintSense::LessEqual) {
+                sense = ConstraintSense::GreaterEqual;
+            }
+            else if (sense == ConstraintSense::GreaterEqual) {
+                sense = ConstraintSense::LessEqual;
+            }
+        }
+
         if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::LessEqual
         ) {
             extra += 1;
         }
         else if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::GreaterEqual
         ) {
             extra += 2;
@@ -495,14 +507,26 @@ std::vector<bool> find_artificial_columns(
         const auto& constraint :
         problem.constraints()
     ) {
+        ConstraintSense sense =
+            constraint.sense;
+
+        if (constraint.rhs < -EPS) {
+            if (sense == ConstraintSense::LessEqual) {
+                sense = ConstraintSense::GreaterEqual;
+            }
+            else if (sense == ConstraintSense::GreaterEqual) {
+                sense = ConstraintSense::LessEqual;
+            }
+        }
+
         if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::LessEqual
         ) {
             extra += 1;
         }
         else if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::GreaterEqual
         ) {
             extra += 2;
@@ -523,14 +547,26 @@ std::vector<bool> find_artificial_columns(
         const auto& constraint :
         problem.constraints()
     ) {
+        ConstraintSense sense =
+            constraint.sense;
+
+        if (constraint.rhs < -EPS) {
+            if (sense == ConstraintSense::LessEqual) {
+                sense = ConstraintSense::GreaterEqual;
+            }
+            else if (sense == ConstraintSense::GreaterEqual) {
+                sense = ConstraintSense::LessEqual;
+            }
+        }
+
         if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::LessEqual
         ) {
             next += 1;
         }
         else if (
-            constraint.sense ==
+            sense ==
             ConstraintSense::GreaterEqual
         ) {
             next += 1;
