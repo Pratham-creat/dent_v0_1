@@ -9,6 +9,8 @@ C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_pdhg_test.d
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_pdlp_test.dir
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_dispatcher_test.dir
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_solution_validator_test.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_benchmark.dir
+C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/dent_solver_comparison.dir
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/RUN_TESTS.dir
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/ALL_BUILD.dir
 C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/CMakeFiles/ZERO_CHECK.dir

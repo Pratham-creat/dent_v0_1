@@ -1,9 +1,0 @@
-dent_solver_industry_test 1 0.0559839
-dent_interior_point_test 1 0.0623962
-dent_model_parser_test 1 0.0677646
-dent_scaling_test 1 0.0511855
-dent_milp_branching_test 1 0.0571591
-dent_pdhg_test 1 0.0887619
-dent_pdlp_test 1 0.0716888
-dent_dispatcher_test 1 0.0724768
----

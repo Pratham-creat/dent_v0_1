@@ -10,6 +10,7 @@
 	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3a79dc76-567e-3ca1-b63f-7e5aa8b00092" DefaultStartup="true">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<BuildDependency Project="dent.vcxproj"/>
+		<BuildDependency Project="dent_benchmark.vcxproj"/>
 		<BuildDependency Project="dent_core.vcxproj"/>
 		<BuildDependency Project="dent_dispatcher_test.vcxproj"/>
 		<BuildDependency Project="dent_interior_point_test.vcxproj"/>
@@ -19,6 +20,7 @@
 		<BuildDependency Project="dent_pdlp_test.vcxproj"/>
 		<BuildDependency Project="dent_scaling_test.vcxproj"/>
 		<BuildDependency Project="dent_solution_validator_test.vcxproj"/>
+		<BuildDependency Project="dent_solver_comparison.vcxproj"/>
 		<BuildDependency Project="dent_solver_industry_test.vcxproj"/>
 		<Build Solution="Debug|*" Project="false"/>
 		<Build Solution="Release|*" Project="false"/>
@@ -34,6 +36,10 @@
 	</Project>
 	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7c124317-811b-3c42-86a8-50ee684e93b1"/>
 	<Project Path="dent.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="beda3ec8-7536-3800-8a6c-fc5d043aac44">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="dent_core.vcxproj"/>
+	</Project>
+	<Project Path="dent_benchmark.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="791f33f5-b548-3a96-bb42-82972f7dbee7">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<BuildDependency Project="dent_core.vcxproj"/>
 	</Project>
@@ -69,6 +75,10 @@
 		<BuildDependency Project="dent_core.vcxproj"/>
 	</Project>
 	<Project Path="dent_solution_validator_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="90e2488a-85ca-3d73-9eac-6fcfd11fc4b4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="dent_core.vcxproj"/>
+	</Project>
+	<Project Path="dent_solver_comparison.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c7fb5bcb-ace4-3da3-af53-9a2557715851">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<BuildDependency Project="dent_core.vcxproj"/>
 	</Project>

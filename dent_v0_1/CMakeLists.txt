@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
+# ============================================================
+# CORE LIBRARY
+# ============================================================
+
 add_library(
     dent_core
 
@@ -45,6 +49,10 @@ target_include_directories(
 )
 
 
+# ============================================================
+# MAIN DENT APPLICATION
+# ============================================================
+
 add_executable(
     dent
     src/main.cpp
@@ -57,8 +65,16 @@ target_link_libraries(
 )
 
 
+# ============================================================
+# TESTING
+# ============================================================
+
 enable_testing()
 
+
+# ------------------------------------------------------------
+# Solver industry test
+# ------------------------------------------------------------
 
 add_executable(
     dent_solver_industry_test
@@ -77,6 +93,10 @@ add_test(
 )
 
 
+# ------------------------------------------------------------
+# Interior Point
+# ------------------------------------------------------------
+
 add_executable(
     dent_interior_point_test
     tests/solver/interior_point_test.cpp
@@ -93,6 +113,10 @@ add_test(
     COMMAND dent_interior_point_test
 )
 
+
+# ------------------------------------------------------------
+# Model parser
+# ------------------------------------------------------------
 
 add_executable(
     dent_model_parser_test
@@ -111,6 +135,10 @@ add_test(
 )
 
 
+# ------------------------------------------------------------
+# Scaling
+# ------------------------------------------------------------
+
 add_executable(
     dent_scaling_test
     tests/presolve/scaling_test.cpp
@@ -127,6 +155,10 @@ add_test(
     COMMAND dent_scaling_test
 )
 
+
+# ------------------------------------------------------------
+# MILP branching / strengthening
+# ------------------------------------------------------------
 
 add_executable(
     dent_milp_branching_test
@@ -145,6 +177,10 @@ add_test(
 )
 
 
+# ------------------------------------------------------------
+# PDHG
+# ------------------------------------------------------------
+
 add_executable(
     dent_pdhg_test
     tests/solver/pdhg_test.cpp
@@ -161,6 +197,10 @@ add_test(
     COMMAND dent_pdhg_test
 )
 
+
+# ------------------------------------------------------------
+# PDLP
+# ------------------------------------------------------------
 
 add_executable(
     dent_pdlp_test
@@ -179,6 +219,10 @@ add_test(
 )
 
 
+# ------------------------------------------------------------
+# Adaptive dispatcher
+# ------------------------------------------------------------
+
 add_executable(
     dent_dispatcher_test
     tests/dispatch/dispatcher_test.cpp
@@ -195,6 +239,11 @@ add_test(
     COMMAND dent_dispatcher_test
 )
 
+
+# ------------------------------------------------------------
+# Solution validator
+# ------------------------------------------------------------
+
 add_executable(
     dent_solution_validator_test
     tests/validation/solution_validator_test.cpp
@@ -209,4 +258,35 @@ target_link_libraries(
 add_test(
     NAME dent_solution_validator_test
     COMMAND dent_solution_validator_test
+)
+
+
+# ============================================================
+# BENCHMARK RUNNER
+# ============================================================
+
+add_executable(
+    dent_benchmark
+    tests/benchmark/benchmark_runner.cpp
+)
+
+target_link_libraries(
+    dent_benchmark
+    PRIVATE
+        dent_core
+)
+
+
+add_executable(dent_solver_comparison
+    tests/benchmark/solver_comparison.cpp
+)
+
+target_link_libraries(dent_solver_comparison
+    PRIVATE
+        dent_core
+)
+
+target_include_directories(dent_solver_comparison
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
