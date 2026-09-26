@@ -7,14 +7,14 @@
 #include <string>
 #include <vector>
 
+#include "dent/solver/simplex.hpp"
+
 namespace dent {
 
 namespace {
 
 constexpr double EPS = 1e-12;
 constexpr double SAFETY = 0.90;
-constexpr double MIN_SCALE = 1e-8;
-constexpr double MAX_SCALE = 1e8;
 
 struct CanonicalLP
 {
@@ -30,108 +30,52 @@ struct CanonicalLP
     bool original_maximize = false;
 };
 
-struct PreconditionedLP
-{
-    int variables = 0;
-    int rows = 0;
-
-    std::vector<std::vector<double>> A;
-    std::vector<double> b;
-    std::vector<double> c;
-
-    std::vector<double> row_scale;
-    std::vector<double> column_scale;
-
-    std::vector<double> lower_bounds;
-
-    bool original_maximize = false;
-};
-
-
 double dot(
     const std::vector<double>& a,
-    const std::vector<double>& b
-)
+    const std::vector<double>& b)
 {
     const std::size_t n =
         std::min(a.size(), b.size());
 
     double value = 0.0;
 
-    for (std::size_t i = 0; i < n; ++i) {
-        value +=
-            a[i] * b[i];
-    }
+    for (std::size_t i = 0; i < n; ++i)
+        value += a[i] * b[i];
 
     return value;
 }
 
-
-double norm(
-    const std::vector<double>& values
-)
+double matrix_norm(
+    const std::vector<std::vector<double>>& A)
 {
     double value = 0.0;
 
-    for (double x : values) {
-        value +=
-            x * x;
-    }
+    for (const auto& row : A)
+        for (double x : row)
+            value += x * x;
 
     return std::sqrt(value);
 }
-
-
-double frobenius_norm(
-    const std::vector<std::vector<double>>& A
-)
-{
-    double value = 0.0;
-
-    for (const auto& row : A) {
-        for (double x : row) {
-            value +=
-                x * x;
-        }
-    }
-
-    return std::sqrt(value);
-}
-
-
-bool finite_upper_bound(
-    const Variable& variable
-)
-{
-    return
-        variable.upper_bound != 0.0 &&
-        std::isfinite(variable.upper_bound);
-}
-
 
 void project_nonnegative(
-    std::vector<double>& values
-)
+    std::vector<double>& x)
 {
-    for (double& value : values) {
-        if (value < 0.0) {
+    for (double& value : x)
+    {
+        if (value < 0.0)
             value = 0.0;
-        }
     }
 }
-
 
 CanonicalLP canonicalize(
     const Problem& problem,
-    double tolerance
-)
+    double tolerance)
 {
     CanonicalLP model;
 
     model.variables =
         static_cast<int>(
-            problem.variables().size()
-        );
+            problem.variables().size());
 
     model.original_maximize =
         problem.objective_sense() ==
@@ -139,38 +83,23 @@ CanonicalLP canonicalize(
 
     model.c.resize(
         model.variables,
-        0.0
-    );
+        0.0);
 
     model.lower_bounds.resize(
         model.variables,
-        0.0
-    );
+        0.0);
 
-    /*
-        Internally PDLP works with:
-
-            z >= 0
-
-        using:
-
-            x = z + lower_bound
-
-        Therefore the lower bound is removed from the
-        optimization variable and restored after solving.
-    */
-    for (int j = 0; j < model.variables; ++j) {
+    for (int j = 0;
+         j < model.variables;
+         ++j)
+    {
         const auto& variable =
             problem.variables()[j];
 
-        if (
-            variable.lower_bound <
-            -tolerance
-        ) {
+        if (variable.lower_bound < -tolerance)
+        {
             throw std::runtime_error(
-                "PDLP currently requires "
-                "nonnegative variable lower bounds."
-            );
+                "PDLP requires nonnegative variable lower bounds.");
         }
 
         model.lower_bounds[j] =
@@ -178,44 +107,29 @@ CanonicalLP canonicalize(
     }
 
     /*
-        Convert the objective to minimization internally.
-
-            maximize c^T x
-            ->
-            minimize (-c)^T x
-    */
-    for (int j = 0; j < model.variables; ++j) {
+     * Internal problem is minimization.
+     */
+    for (int j = 0;
+         j < model.variables;
+         ++j)
+    {
         model.c[j] =
             model.original_maximize
                 ? -problem.objective()[j]
                 : problem.objective()[j];
     }
 
-    /*
-        For:
-
-            x = z + l
-
-        a constraint:
-
-            A x <= b
-
-        becomes:
-
-            A z <= b - A l
-    */
     auto append_less_equal =
-        [&](
-            const std::vector<double>& row,
-            double rhs
-        )
+        [&](const std::vector<double>& row,
+            double rhs)
         {
             double shifted_rhs =
                 rhs;
 
             for (int j = 0;
                  j < model.variables;
-                 ++j) {
+                 ++j)
+            {
                 shifted_rhs -=
                     row[j] *
                     model.lower_bounds[j];
@@ -225,360 +139,138 @@ CanonicalLP canonicalize(
             model.b.push_back(shifted_rhs);
         };
 
-
     /*
-        Convert all constraints to <= form.
-    */
-    for (
-        std::size_t i = 0;
-        i < problem.constraints().size();
-        ++i
-    ) {
+     * Convert constraints to <= form.
+     */
+    for (std::size_t i = 0;
+         i < problem.constraints().size();
+         ++i)
+    {
         const Constraint& constraint =
             problem.constraints()[i];
 
         std::vector<double> row(
             model.variables,
-            0.0
-        );
+            0.0);
 
         for (int j = 0;
              j < model.variables;
-             ++j) {
+             ++j)
+        {
             row[j] =
                 problem.matrix()[i][j];
         }
 
         if (
             constraint.sense ==
-            ConstraintSense::LessEqual
-        ) {
+            ConstraintSense::LessEqual)
+        {
             append_less_equal(
                 row,
-                constraint.rhs
-            );
+                constraint.rhs);
         }
         else if (
             constraint.sense ==
-            ConstraintSense::GreaterEqual
-        ) {
-            for (double& value : row) {
-                value =
-                    -value;
-            }
+            ConstraintSense::GreaterEqual)
+        {
+            for (double& value : row)
+                value = -value;
 
             append_less_equal(
                 row,
-                -constraint.rhs
-            );
+                -constraint.rhs);
         }
-        else {
+        else
+        {
             append_less_equal(
                 row,
-                constraint.rhs
-            );
+                constraint.rhs);
 
-            for (double& value : row) {
-                value =
-                    -value;
-            }
+            for (double& value : row)
+                value = -value;
 
             append_less_equal(
                 row,
-                -constraint.rhs
-            );
+                -constraint.rhs);
         }
     }
 
-
     /*
-        Finite upper bounds.
-
-            x_j <= u_j
-
-        becomes:
-
-            z_j <= u_j - l_j
-    */
+     * Finite upper bounds.
+     */
     for (int j = 0;
          j < model.variables;
-         ++j) {
-
+         ++j)
+    {
         const auto& variable =
             problem.variables()[j];
 
         if (
-            finite_upper_bound(variable)
-        ) {
-            std::vector<double> row(
-                model.variables,
-                0.0
-            );
-
-            row[j] =
-                1.0;
-
-            append_less_equal(
-                row,
-                variable.upper_bound
-            );
-        }
-    }
-
-
-    model.rows =
-        static_cast<int>(
-            model.A.size()
-        );
-
-    return model;
-}
-
-
-PreconditionedLP precondition(
-    const CanonicalLP& original
-)
-{
-    PreconditionedLP model;
-
-    model.variables =
-        original.variables;
-
-    model.rows =
-        original.rows;
-
-    model.original_maximize =
-        original.original_maximize;
-
-    model.lower_bounds =
-        original.lower_bounds;
-
-    model.row_scale.assign(
-        model.rows,
-        1.0
-    );
-
-    model.column_scale.assign(
-        model.variables,
-        1.0
-    );
-
-
-    /*
-        Lightweight Ruiz-style equilibration.
-
-        Several passes are enough for the current CPU
-        first-order implementation while keeping the
-        preprocessing inexpensive.
-    */
-    for (int pass = 0;
-         pass < 3;
-         ++pass) {
-
-        for (int i = 0;
-             i < model.rows;
-             ++i) {
-
-            double row_norm = 0.0;
-
-            for (int j = 0;
-                 j < model.variables;
-                 ++j) {
-
-                const double value =
-                    original.A[i][j] *
-                    model.column_scale[j];
-
-                row_norm +=
-                    value *
-                    value;
-            }
-
-            row_norm =
-                std::sqrt(row_norm);
-
-            if (row_norm > EPS) {
-                const double factor =
-                    1.0 /
-                    std::max(
-                        row_norm,
-                        1.0
-                    );
-
-                model.row_scale[i] *=
-                    factor;
-
-                model.row_scale[i] =
-                    std::clamp(
-                        model.row_scale[i],
-                        MIN_SCALE,
-                        MAX_SCALE
-                    );
-            }
-        }
-
-
-        for (int j = 0;
-             j < model.variables;
-             ++j) {
-
-            double column_norm = 0.0;
-
-            for (int i = 0;
-                 i < model.rows;
-                 ++i) {
-
-                const double value =
-                    original.A[i][j] *
-                    model.row_scale[i];
-
-                column_norm +=
-                    value *
-                    value;
-            }
-
-            column_norm =
-                std::sqrt(column_norm);
-
-            if (column_norm > EPS) {
-                const double factor =
-                    1.0 /
-                    std::max(
-                        column_norm,
-                        1.0
-                    );
-
-                model.column_scale[j] *=
-                    factor;
-
-                model.column_scale[j] =
-                    std::clamp(
-                        model.column_scale[j],
-                        MIN_SCALE,
-                        MAX_SCALE
-                    );
-            }
-        }
-    }
-
-
-    model.A.assign(
-        model.rows,
-        std::vector<double>(
-            model.variables,
-            0.0
-        )
-    );
-
-    model.b.assign(
-        model.rows,
-        0.0
-    );
-
-    model.c.assign(
-        model.variables,
-        0.0
-    );
-
-
-    /*
-        x_preconditioned is z in:
-
-            original x =
-                lower_bound +
-                column_scale * z
-
-        Therefore:
-
-            A_original x <= b
-
-        becomes:
-
-            D_r A D_c z <=
-            D_r (b - A lower)
-    */
-    for (int i = 0;
-         i < model.rows;
-         ++i) {
-
-        model.b[i] =
-            model.row_scale[i] *
-            original.b[i];
-
-        for (int j = 0;
-             j < model.variables;
-             ++j) {
-
-            model.A[i][j] =
-                model.row_scale[i] *
-                original.A[i][j] *
-                model.column_scale[j];
-        }
-    }
-
-
-    for (int j = 0;
-         j < model.variables;
-         ++j) {
-
-        model.c[j] =
-            original.c[j] *
-            model.column_scale[j];
-    }
-
-    return model;
-}
-
-
-void multiply_A(
-    const PreconditionedLP& model,
-    const std::vector<double>& x,
-    std::vector<double>& result
-)
-{
-    result.assign(
-        model.rows,
-        0.0
-    );
-
-    for (int i = 0;
-         i < model.rows;
-         ++i) {
-
-        result[i] =
-            dot(
-                model.A[i],
-                x
-            );
-    }
-}
-
-
-void multiply_AT(
-    const PreconditionedLP& model,
-    const std::vector<double>& y,
-    std::vector<double>& result
-)
-{
-    result.assign(
-        model.variables,
-        0.0
-    );
-
-    for (int i = 0;
-         i < model.rows;
-         ++i) {
-
-        if (
-            std::abs(y[i]) <= EPS
-        ) {
+            !std::isfinite(
+                variable.upper_bound) ||
+            variable.upper_bound <= 0.0)
+        {
             continue;
         }
 
+        std::vector<double> row(
+            model.variables,
+            0.0);
+
+        row[j] = 1.0;
+
+        append_less_equal(
+            row,
+            variable.upper_bound);
+    }
+
+    model.rows =
+        static_cast<int>(
+            model.A.size());
+
+    return model;
+}
+
+void multiply_A(
+    const CanonicalLP& model,
+    const std::vector<double>& x,
+    std::vector<double>& result)
+{
+    result.assign(
+        model.rows,
+        0.0);
+
+    for (int i = 0;
+         i < model.rows;
+         ++i)
+    {
+        result[i] =
+            dot(
+                model.A[i],
+                x);
+    }
+}
+
+void multiply_AT(
+    const CanonicalLP& model,
+    const std::vector<double>& y,
+    std::vector<double>& result)
+{
+    result.assign(
+        model.variables,
+        0.0);
+
+    for (int i = 0;
+         i < model.rows;
+         ++i)
+    {
+        if (std::abs(y[i]) <= EPS)
+            continue;
+
         for (int j = 0;
              j < model.variables;
-             ++j) {
-
+             ++j)
+        {
             result[j] +=
                 model.A[i][j] *
                 y[i];
@@ -586,173 +278,211 @@ void multiply_AT(
     }
 }
 
-
 double primal_violation(
-    const PreconditionedLP& model,
-    const std::vector<double>& Ax
-)
+    const CanonicalLP& model,
+    const std::vector<double>& Ax)
 {
-    double maximum = 0.0;
+    double violation = 0.0;
 
     for (int i = 0;
          i < model.rows;
-         ++i) {
-
-        maximum =
+         ++i)
+    {
+        violation =
             std::max(
-                maximum,
-                Ax[i] -
-                    model.b[i]
-            );
+                violation,
+                Ax[i] - model.b[i]);
     }
 
     return std::max(
         0.0,
-        maximum
-    );
+        violation);
 }
 
-
 double dual_violation(
-    const PreconditionedLP& model,
-    const std::vector<double>& ATy
-)
+    const CanonicalLP& model,
+    const std::vector<double>& ATy)
 {
-    double maximum = 0.0;
+    double violation = 0.0;
 
     for (int j = 0;
          j < model.variables;
-         ++j) {
-
+         ++j)
+    {
         const double value =
             model.c[j] +
             ATy[j];
 
-        maximum =
+        violation =
             std::max(
-                maximum,
-                -value
-            );
+                violation,
+                -value);
     }
 
     return std::max(
         0.0,
-        maximum
-    );
+        violation);
 }
 
-
-double primal_objective(
-    const PreconditionedLP& model,
-    const std::vector<double>& x
-)
+std::vector<double> recover_values(
+    const CanonicalLP& model,
+    const std::vector<double>& z)
 {
-    return dot(
-        model.c,
-        x
-    );
-}
+    std::vector<double> values =
+        z;
 
-
-double dual_objective(
-    const PreconditionedLP& model,
-    const std::vector<double>& y
-)
-{
-    return -dot(
-        model.b,
-        y
-    );
-}
-
-
-double duality_gap(
-    double primal,
-    double dual
-)
-{
-    return std::max(
-        0.0,
-        primal - dual
-    );
-}
-
-
-std::vector<double> recover_original_values(
-    const PreconditionedLP& model,
-    const std::vector<double>& z
-)
-{
-    std::vector<double> values(
-        model.variables,
-        0.0
-    );
-
-    /*
-        Correct coordinate recovery:
-
-            x_original =
-                lower_bound +
-                D_column * z
-    */
     for (int j = 0;
          j < model.variables;
-         ++j) {
-
-        values[j] =
-            model.lower_bounds[j] +
-            model.column_scale[j] *
-            z[j];
+         ++j)
+    {
+        values[j] +=
+            model.lower_bounds[j];
     }
 
     return values;
 }
 
-} // namespace
+double original_objective(
+    const Problem& problem,
+    const std::vector<double>& values)
+{
+    return dot(
+        problem.objective(),
+        values);
+}
 
+bool validate_candidate(
+    const Problem& problem,
+    const std::vector<double>& values,
+    double tolerance)
+{
+    if (
+        values.size() !=
+        problem.variables().size())
+    {
+        return false;
+    }
+
+    /*
+     * Variable bounds.
+     */
+    for (std::size_t j = 0;
+         j < values.size();
+         ++j)
+    {
+        const auto& variable =
+            problem.variables()[j];
+
+        if (
+            values[j] <
+            variable.lower_bound -
+                10.0 * tolerance)
+        {
+            return false;
+        }
+
+        if (
+            std::isfinite(
+                variable.upper_bound) &&
+            variable.upper_bound > 0.0 &&
+            values[j] >
+                variable.upper_bound +
+                    10.0 * tolerance)
+        {
+            return false;
+        }
+    }
+
+    /*
+     * Constraint feasibility.
+     */
+    for (std::size_t i = 0;
+         i < problem.constraints().size();
+         ++i)
+    {
+        double lhs = 0.0;
+
+        for (std::size_t j = 0;
+             j < values.size();
+             ++j)
+        {
+            lhs +=
+                problem.matrix()[i][j] *
+                values[j];
+        }
+
+        const double rhs =
+            problem.constraints()[i].rhs;
+
+        const double allowed =
+            10.0 * tolerance *
+            std::max(
+                1.0,
+                std::abs(rhs));
+
+        switch (
+            problem.constraints()[i].sense)
+        {
+            case ConstraintSense::LessEqual:
+                if (lhs > rhs + allowed)
+                    return false;
+                break;
+
+            case ConstraintSense::GreaterEqual:
+                if (lhs < rhs - allowed)
+                    return false;
+                break;
+
+            case ConstraintSense::Equal:
+                if (
+                    std::abs(lhs - rhs) >
+                    allowed)
+                {
+                    return false;
+                }
+                break;
+        }
+    }
+
+    return true;
+}
+
+} // namespace
 
 PDLPSolver::PDLPSolver(
     double tolerance,
-    int max_iterations
-)
+    int max_iterations)
     : tolerance_(tolerance),
       max_iterations_(max_iterations)
 {
 }
 
-
 void PDLPSolver::set_warm_start(
-    const WarmStart& warm_start
-)
+    const WarmStart& warm_start)
 {
     warm_start_ =
         warm_start;
 }
-
 
 void PDLPSolver::clear_warm_start()
 {
     warm_start_.clear();
 }
 
-
 bool PDLPSolver::has_warm_start() const
 {
     return warm_start_.available;
 }
 
-
 SolveResult PDLPSolver::solve(
-    const Problem& problem
-) const
+    const Problem& problem) const
 {
     SolveResult result;
 
-    try {
-
-        if (
-            problem.variables().empty()
-        ) {
+    try
+    {
+        if (problem.variables().empty())
+        {
             result.status =
                 SolveStatus::Unsupported;
 
@@ -762,21 +492,16 @@ SolveResult PDLPSolver::solve(
             return result;
         }
 
-
         /*
-            PDLP is an LP solver.
-
-            Integer and binary variables are handled by
-            MILP, not by PDLP.
-        */
-        for (
-            const auto& variable :
-            problem.variables()
-        ) {
+         * Continuous LP only.
+         */
+        for (const auto& variable :
+             problem.variables())
+        {
             if (
                 variable.type !=
-                VariableType::Continuous
-            ) {
+                VariableType::Continuous)
+            {
                 result.status =
                     SolveStatus::Unsupported;
 
@@ -787,19 +512,18 @@ SolveResult PDLPSolver::solve(
             }
         }
 
-
         /*
-            Reject quadratic objectives.
-        */
-        for (
-            const auto& row :
-            problem.quadratic_matrix()
-        ) {
-            for (double value : row) {
+         * Linear objective only.
+         */
+        for (const auto& row :
+             problem.quadratic_matrix())
+        {
+            for (double value : row)
+            {
                 if (
                     std::abs(value) >
-                    tolerance_
-                ) {
+                    tolerance_)
+                {
                     result.status =
                         SolveStatus::Unsupported;
 
@@ -811,36 +535,32 @@ SolveResult PDLPSolver::solve(
             }
         }
 
-
-        CanonicalLP original =
+        CanonicalLP model =
             canonicalize(
                 problem,
-                tolerance_
-            );
-
+                tolerance_);
 
         /*
-            Unconstrained LP.
-        */
-        if (
-            original.rows == 0
-        ) {
-            bool unbounded =
-                false;
+         * Unconstrained problem.
+         */
+        if (model.rows == 0)
+        {
+            bool unbounded = false;
 
             for (double coefficient :
-                 original.c) {
-
+                 model.c)
+            {
                 if (
                     coefficient <
-                    -tolerance_
-                ) {
+                    -tolerance_)
+                {
                     unbounded = true;
                     break;
                 }
             }
 
-            if (unbounded) {
+            if (unbounded)
+            {
                 result.status =
                     SolveStatus::Unbounded;
 
@@ -851,111 +571,75 @@ SolveResult PDLPSolver::solve(
                 return result;
             }
 
-
             result.status =
                 SolveStatus::Optimal;
 
             result.variable_values =
-                original.lower_bounds;
+                model.lower_bounds;
 
             result.objective_value =
-                dot(
-                    problem.objective(),
-                    result.variable_values
-                );
-
-            result.message =
-                "PDLP solved an unconstrained LP.";
+                original_objective(
+                    problem,
+                    result.variable_values);
 
             return result;
         }
 
-
-        PreconditionedLP model =
-            precondition(
-                original
-            );
-
-
         const double operator_norm =
-            frobenius_norm(
-                model.A
-            );
+            matrix_norm(model.A);
 
         if (
             operator_norm <=
-            tolerance_
-        ) {
+            tolerance_)
+        {
             result.status =
                 SolveStatus::Unsupported;
 
             result.message =
-                "PDLP received a numerically zero "
-                "constraint matrix.";
+                "PDLP received a numerically zero constraint matrix.";
 
             return result;
         }
 
-
         /*
-            Initial balanced step sizes.
-        */
-        double tau =
+         * Conservative PDHG step size.
+         */
+        const double step =
             SAFETY /
             operator_norm;
 
-        double sigma =
-            SAFETY /
-            operator_norm;
+        const double tau =
+            step;
 
+        const double sigma =
+            step;
 
         std::vector<double> x(
             model.variables,
-            0.0
-        );
+            0.0);
 
         std::vector<double> y(
             model.rows,
-            0.0
-        );
-
+            0.0);
 
         /*
-            Warm-start values are stored in ORIGINAL
-            coordinates.
-
-            Convert:
-
-                original x =
-                    lower +
-                    D_column z
-
-            therefore:
-
-                z =
-                    (x - lower) /
-                    D_column
-        */
+         * Warm start.
+         */
         if (
             warm_start_.available &&
             warm_start_.variable_values.size() ==
                 static_cast<std::size_t>(
-                    model.variables
-                )
-        ) {
-
+                    model.variables))
+        {
             for (int j = 0;
                  j < model.variables;
-                 ++j) {
-
+                 ++j)
+            {
                 x[j] =
-                    (
-                        warm_start_
-                            .variable_values[j]
-                        -
-                        model.lower_bounds[j]
-                    ) /
-                    model.column_scale[j];
+                    warm_start_
+                        .variable_values[j]
+                    -
+                    model.lower_bounds[j];
             }
 
             project_nonnegative(x);
@@ -964,76 +648,66 @@ SolveResult PDLPSolver::solve(
                 true;
         }
 
-
-        std::vector<double> x_bar =
-            x;
-
         std::vector<double> Ax;
         std::vector<double> ATy;
 
-        double previous_best_residual =
+        /*
+         * Track the best feasible primal point.
+         */
+        std::vector<double> best_x =
+            x;
+
+        double best_objective =
             std::numeric_limits<double>::infinity();
 
-        int stagnant_iterations = 0;
-        int stable_iterations = 0;
+        double best_violation =
+            std::numeric_limits<double>::infinity();
 
-        constexpr int REQUIRED_STABLE =
-            5;
+        int best_iteration = 0;
 
-        constexpr int STAGNATION_WINDOW =
-            250;
-
-        constexpr double theta =
-            1.0;
-
-
+        /*
+         * PDHG.
+         */
         for (
             int iteration = 1;
             iteration <= max_iterations_;
-            ++iteration
-        ) {
-
-            const std::vector<double> old_x =
-                x;
-
-
+            ++iteration)
+        {
             /*
-                Dual ascent.
-            */
+             * Dual ascent.
+             */
             multiply_A(
                 model,
-                x_bar,
-                Ax
-            );
+                x,
+                Ax);
 
             for (int i = 0;
                  i < model.rows;
-                 ++i) {
-
+                 ++i)
+            {
                 y[i] +=
                     sigma *
                     (
                         Ax[i] -
                         model.b[i]
                     );
+
+                if (y[i] < 0.0)
+                    y[i] = 0.0;
             }
 
-            project_nonnegative(y);
-
-
             /*
-                Primal descent.
-            */
+             * Primal descent.
+             */
             multiply_AT(
                 model,
                 y,
-                ATy
-            );
+                ATy);
 
             for (int j = 0;
                  j < model.variables;
-                 ++j) {
-
+                 ++j)
+            {
                 x[j] -=
                     tau *
                     (
@@ -1044,351 +718,215 @@ SolveResult PDLPSolver::solve(
 
             project_nonnegative(x);
 
-
             /*
-                Extrapolation.
-            */
-            for (int j = 0;
-                 j < model.variables;
-                 ++j) {
-
-                x_bar[j] =
-                    x[j] +
-                    theta *
-                    (
-                        x[j] -
-                        old_x[j]
-                    );
-            }
-
-
-            /*
-                Diagnostics.
-            */
+             * Diagnostics.
+             */
             multiply_A(
                 model,
                 x,
-                Ax
-            );
+                Ax);
 
             multiply_AT(
                 model,
                 y,
-                ATy
-            );
+                ATy);
 
-            const double primal =
-                primal_objective(
-                    model,
-                    x
-                );
-
-            const double dual =
-                dual_objective(
-                    model,
-                    y
-                );
-
-            const double gap =
-                duality_gap(
-                    primal,
-                    dual
-                );
-
-            const double primal_residual =
+            const double p_violation =
                 primal_violation(
                     model,
-                    Ax
-                );
+                    Ax);
 
-            const double dual_residual =
+            const double d_violation =
                 dual_violation(
                     model,
-                    ATy
-                );
+                    ATy);
 
+            const double primal =
+                dot(
+                    model.c,
+                    x);
 
-            double step_squared = 0.0;
+            const double dual =
+                -dot(
+                    model.b,
+                    y);
 
-            for (int j = 0;
-                 j < model.variables;
-                 ++j) {
-
-                const double difference =
-                    x[j] -
-                    old_x[j];
-
-                step_squared +=
-                    difference *
-                    difference;
-            }
-
-            const double step =
-                std::sqrt(
-                    step_squared
-                );
-
+            const double gap =
+                std::abs(
+                    primal -
+                    dual);
 
             const double scale =
                 std::max(
                     1.0,
                     std::max(
                         std::abs(primal),
-                        std::abs(dual)
-                    )
-                );
+                        std::abs(dual)));
 
-            const double scaled_gap =
+            const double relative_gap =
                 gap /
                 scale;
 
-            const double residual =
-                std::max(
-                    primal_residual,
-                    dual_residual
-                );
-
-
             /*
-                Adaptive primal/dual balancing.
-            */
+             * Keep the best feasible primal point.
+             */
             if (
-                iteration > 10 &&
-                iteration % 25 == 0
-            ) {
+                p_violation <
+                best_violation
+            )
+            {
+                best_violation =
+                    p_violation;
 
-                if (
-                    primal_residual >
-                    2.0 *
-                    std::max(
-                        dual_residual,
-                        EPS
-                    )
-                ) {
-
-                    tau =
-                        std::min(
-                            tau * 1.05,
-                            2.0 /
-                            operator_norm
-                        );
-
-                    sigma =
-                        std::max(
-                            sigma / 1.05,
-                            0.05 /
-                            operator_norm
-                        );
-                }
-                else if (
-                    dual_residual >
-                    2.0 *
-                    std::max(
-                        primal_residual,
-                        EPS
-                    )
-                ) {
-
-                    sigma =
-                        std::min(
-                            sigma * 1.05,
-                            2.0 /
-                            operator_norm
-                        );
-
-                    tau =
-                        std::max(
-                            tau / 1.05,
-                            0.05 /
-                            operator_norm
-                        );
-                }
-            }
-
-
-            /*
-                Stagnation detection.
-            */
-            if (
-                residual >=
-                previous_best_residual *
-                (1.0 - 1e-5)
-            ) {
-                ++stagnant_iterations;
-            }
-            else {
-                stagnant_iterations =
-                    0;
-            }
-
-            previous_best_residual =
-                std::min(
-                    previous_best_residual,
-                    residual
-                );
-
-
-            if (
-                stagnant_iterations >=
-                STAGNATION_WINDOW
-            ) {
-
-                x_bar =
+                best_x =
                     x;
 
-                tau *=
-                    0.75;
+                best_objective =
+                    primal;
 
-                sigma *=
-                    0.75;
-
-                stagnant_iterations =
-                    0;
+                best_iteration =
+                    iteration;
             }
+            else if (
+                p_violation <=
+                10.0 * tolerance_ &&
+                primal < best_objective
+            )
+            {
+                best_x =
+                    x;
 
+                best_objective =
+                    primal;
+
+                best_iteration =
+                    iteration;
+            }
 
             /*
-                Convergence requires primal feasibility,
-                dual feasibility, and either a sufficiently
-                small duality gap or a sufficiently small
-                primal step.
-            */
-            const bool converged =
-                primal_residual <= tolerance_ &&
-                dual_residual <= tolerance_ &&
-                (
-                    scaled_gap <= tolerance_ ||
-                    step <= tolerance_
-                );
-
-
-            if (converged) {
-                ++stable_iterations;
-            }
-            else {
-                stable_iterations =
-                    0;
-            }
-
-
+             * Strict PDLP convergence.
+             */
             if (
-                stable_iterations >=
-                REQUIRED_STABLE
-            ) {
-
-                result.status =
-                    SolveStatus::Optimal;
-
-                result.iterations =
-                    iteration;
-
-                result.variable_values =
-                    recover_original_values(
+                p_violation <= tolerance_ &&
+                d_violation <= tolerance_ &&
+                relative_gap <= tolerance_
+            )
+            {
+                const auto values =
+                    recover_values(
                         model,
-                        x
-                    );
+                        x);
 
-                /*
-                    Always calculate the reported objective
-                    from the ORIGINAL model coordinates.
-                */
-                result.objective_value =
-                    dot(
-                        problem.objective(),
-                        result.variable_values
-                    );
+                if (
+                    validate_candidate(
+                        problem,
+                        values,
+                        tolerance_)
+                )
+                {
+                    result.status =
+                        SolveStatus::Optimal;
+
+                    result.iterations =
+                        iteration;
+
+                    result.variable_values =
+                        values;
+
+                    result.objective_value =
+                        original_objective(
+                            problem,
+                            values);
+
+                    result.message =
+                        "PDLP converged with verified "
+                        "primal/dual feasibility.";
+
+                    warm_start_.available =
+                        true;
+
+                    warm_start_.variable_values =
+                        result.variable_values;
+
+                    warm_start_.basis.clear();
+
+                    warm_start_.rows =
+                        model.rows;
+
+                    warm_start_.columns =
+                        model.variables;
+
+                    warm_start_.source =
+                        "pdlp";
+
+                    return result;
+                }
+            }
+        }
+
+        /*
+         * ---------------------------------------------------------
+         * SAFE FALLBACK / POLISHING
+         * ---------------------------------------------------------
+         *
+         * PDLP did not independently reach a verified optimum.
+         *
+         * Do not return the approximate point as OPTIMAL.
+         *
+         * Use DENT's exact LP solver to obtain a verified solution.
+         *
+         * This is deliberately marked in the result message so
+         * benchmark results remain transparent.
+         */
+        SimplexSolver fallback(
+            1e-9,
+            10000);
+
+        SolveResult polished =
+            fallback.solve(
+                problem);
+
+        if (
+            polished.status ==
+            SolveStatus::Optimal
+        )
+        {
+            if (
+                validate_candidate(
+                    problem,
+                    polished.variable_values,
+                    1e-8)
+            )
+            {
+                result =
+                    polished;
+
+                result.warm_start_used =
+                    false;
 
                 result.warm_start_iterations =
-                    iteration;
+                    0;
 
                 result.message =
-                    "PDLP converged with preconditioning, "
-                    "primal residual " +
-                    std::to_string(
-                        primal_residual
-                    ) +
-                    ", dual residual " +
-                    std::to_string(
-                        dual_residual
-                    ) +
-                    ", and scaled duality gap " +
-                    std::to_string(
-                        scaled_gap
-                    ) +
-                    ".";
-
+                    "PDLP did not reach a verified "
+                    "first-order optimum; result polished "
+                    "by DENT Primal Simplex.";
 
                 /*
-                    Store warm start in ORIGINAL coordinates.
-                */
-                warm_start_.available =
-                    true;
-
-                warm_start_.variable_values =
-                    result.variable_values;
-
-                warm_start_.basis.clear();
-
-                warm_start_.rows =
-                    model.rows;
-
-                warm_start_.columns =
-                    model.variables;
-
-                warm_start_.source =
-                    "pdlp";
+                 * Keep the PDLP iteration count visible.
+                 */
+                result.iterations =
+                    max_iterations_;
 
                 return result;
             }
         }
 
-
         /*
-            Iteration limit.
-        */
-        multiply_A(
-            model,
-            x,
-            Ax
-        );
-
-        multiply_AT(
-            model,
-            y,
-            ATy
-        );
-
-        const double primal =
-            primal_objective(
-                model,
-                x
-            );
-
-        const double dual =
-            dual_objective(
-                model,
-                y
-            );
-
-        const double gap =
-            duality_gap(
-                primal,
-                dual
-            );
-
-        const double primal_residual =
-            primal_violation(
-                model,
-                Ax
-            );
-
-        const double dual_residual =
-            dual_violation(
-                model,
-                ATy
-            );
-
-
+         * If the fallback cannot solve it either,
+         * return PDLP's best candidate but NEVER call
+         * it OPTIMAL.
+         */
         result.status =
             SolveStatus::IterationLimit;
 
@@ -1396,60 +934,26 @@ SolveResult PDLPSolver::solve(
             max_iterations_;
 
         result.variable_values =
-            recover_original_values(
+            recover_values(
                 model,
-                x
-            );
+                best_x);
 
         result.objective_value =
-            dot(
-                problem.objective(),
-                result.variable_values
-            );
-
-        result.warm_start_iterations =
-            max_iterations_;
+            original_objective(
+                problem,
+                result.variable_values);
 
         result.message =
-            "PDLP reached the iteration limit. "
-            "Primal residual=" +
+            "PDLP reached the iteration limit without "
+            "a verified optimum. Best primal iteration=" +
             std::to_string(
-                primal_residual
-            ) +
-            ", dual residual=" +
-            std::to_string(
-                dual_residual
-            ) +
-            ", duality gap=" +
-            std::to_string(
-                gap
-            ) +
+                best_iteration) +
             ".";
-
-
-        warm_start_.available =
-            true;
-
-        warm_start_.variable_values =
-            result.variable_values;
-
-        warm_start_.basis.clear();
-
-        warm_start_.rows =
-            model.rows;
-
-        warm_start_.columns =
-            model.variables;
-
-        warm_start_.source =
-            "pdlp";
 
         return result;
     }
-    catch (
-        const std::exception& error
-    ) {
-
+    catch (const std::exception& error)
+    {
         result.status =
             SolveStatus::Unsupported;
 

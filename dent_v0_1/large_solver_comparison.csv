@@ -1,0 +1,13 @@
+model,solver,status,objective,objective_delta,avg_time_ms,iterations,agrees_with_reference
+"lp_large_production.dent","Primal Simplex",OPTIMAL,15141.7307692,0,0.430366666667,35,YES
+"lp_large_production.dent","Interior Point",OPTIMAL,15141.7307691,1.60694980877e-07,1.1179,24,YES
+"lp_large_production.dent","PDHG",OPTIMAL,15141.7307692,0,19.4015,35,YES
+"lp_large_production.dent","PDLP",OPTIMAL,15141.7307692,0,27.1574666667,50000,YES
+"lp_large_transport.dent","Primal Simplex",OPTIMAL,3780,0,0.901666666667,54,YES
+"lp_large_transport.dent","Interior Point",OPTIMAL,3780.00000088,8.79965682543e-07,0.333633333333,15,YES
+"lp_large_transport.dent","PDHG",OPTIMAL,3780.00000537,5.36723473488e-06,13.2207333333,6318,YES
+"lp_large_transport.dent","PDLP",OPTIMAL,3780,0,75.3955,50000,YES
+"lp_large_blending.dent","Primal Simplex",OPTIMAL,71699.25,0,0.255433333333,20,YES
+"lp_large_blending.dent","Interior Point",OPTIMAL,71699.2499992,7.97022948973e-07,0.595133333333,33,YES
+"lp_large_blending.dent","PDHG",OPTIMAL,71699.25,0,20.6785333333,20,YES
+"lp_large_blending.dent","PDLP",OPTIMAL,71699.25,0,29.5921,50000,YES

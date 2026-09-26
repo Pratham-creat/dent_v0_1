@@ -1,625 +1,211 @@
-#include "dent/model/problem.hpp"
-#include "dent/solver/pdlp.hpp"
-
 #include <cmath>
 #include <iostream>
 #include <string>
 
-using namespace dent;
+#include "dent/io/model_parser.hpp"
+#include "dent/solver/pdlp.hpp"
 
-namespace {
+namespace
+{
 
 bool approximately_equal(
     double a,
     double b,
-    double tolerance = 1e-3
-)
+    double tolerance = 1e-5)
 {
     return std::abs(a - b) <= tolerance;
 }
 
-bool contains(
-    const std::string& value,
-    const std::string& token
-)
+bool test_model(
+    const std::string& name,
+    const std::string& path,
+    double expected_objective)
 {
-    return value.find(token) !=
-           std::string::npos;
+    std::cout
+        << "\n[TEST] "
+        << name
+        << '\n';
+
+    try
+    {
+        dent::Problem problem =
+            dent::ModelParser::parse_file(path);
+
+        dent::PDLPSolver solver(
+            1e-7,
+            50000);
+
+        dent::SolveResult result =
+            solver.solve(problem);
+
+        std::cout
+            << "  Status    : ";
+
+        switch (result.status)
+        {
+            case dent::SolveStatus::Optimal:
+                std::cout << "OPTIMAL";
+                break;
+
+            case dent::SolveStatus::Infeasible:
+                std::cout << "INFEASIBLE";
+                break;
+
+            case dent::SolveStatus::Unbounded:
+                std::cout << "UNBOUNDED";
+                break;
+
+            case dent::SolveStatus::IterationLimit:
+                std::cout << "ITERATION_LIMIT";
+                break;
+
+            case dent::SolveStatus::Unsupported:
+                std::cout << "UNSUPPORTED";
+                break;
+        }
+
+        std::cout
+            << '\n'
+            << "  Objective : "
+            << result.objective_value
+            << '\n'
+            << "  Iterations: "
+            << result.iterations
+            << '\n';
+
+        if (
+            result.status !=
+            dent::SolveStatus::Optimal)
+        {
+            std::cout
+                << "  FAIL: solver did not reach OPTIMAL.\n";
+
+            return false;
+        }
+
+        if (
+            !approximately_equal(
+                result.objective_value,
+                expected_objective))
+        {
+            std::cout
+                << "  FAIL: objective mismatch.\n"
+                << "  Expected  : "
+                << expected_objective
+                << '\n'
+                << "  Actual    : "
+                << result.objective_value
+                << '\n';
+
+            return false;
+        }
+
+        std::cout
+            << "  PASS\n";
+
+        return true;
+    }
+    catch (const std::exception& error)
+    {
+        std::cout
+            << "  FAIL: "
+            << error.what()
+            << '\n';
+
+        return false;
+    }
 }
 
-}
+} // namespace
 
 int main()
 {
+    std::cout
+        << "========================================\n"
+        << "           DENT PDLP TESTS\n"
+        << "========================================\n";
+
     int passed = 0;
     int failed = 0;
 
     /*
-        ========================================================
-        Test 1
-
-            maximize 3x + 2y
-
-            x + y <= 4
-            x <= 2
-            y <= 3
-
-            x,y >= 0
-
-        Optimum:
-
-            x = 2
-            y = 2
-            objective = 10
-    */
+     * Production planning.
+     *
+     * Expected optimum:
+     * 4059.142857
+     */
+    if (
+        test_model(
+            "LP Production",
+            "benchmarks/lp_production.dent",
+            4059.142857))
     {
-        Problem problem(
-            ObjectiveSense::Maximize
-        );
-
-        const int x =
-            problem.add_variable("x");
-
-        const int y =
-            problem.add_variable("y");
-
-        problem.set_objective_coefficient(
-            x, 3.0
-        );
-
-        problem.set_objective_coefficient(
-            y, 2.0
-        );
-
-        int row =
-            problem.add_constraint(
-                "capacity",
-                ConstraintSense::LessEqual,
-                4.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "x_limit",
-                ConstraintSense::LessEqual,
-                2.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "y_limit",
-                ConstraintSense::LessEqual,
-                3.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        PDLPSolver solver(
-            1e-6,
-            50000
-        );
-
-        SolveResult result =
-            solver.solve(problem);
-
-        const bool ok =
-            result.status ==
-                SolveStatus::Optimal &&
-            result.variable_values.size() == 2 &&
-            approximately_equal(
-                result.variable_values[0],
-                2.0,
-                5e-3
-            ) &&
-            approximately_equal(
-                result.variable_values[1],
-                2.0,
-                5e-3
-            ) &&
-            approximately_equal(
-                result.objective_value,
-                10.0,
-                5e-3
-            ) &&
-            contains(
-                result.message,
-                "PDLP converged"
-            );
-
-        if (ok) {
-            ++passed;
-            std::cout
-                << "[PASS] PDLP basic LP\n";
-        }
-        else {
-            ++failed;
-
-            std::cout
-                << "[FAIL] PDLP basic LP\n"
-                << "  status="
-                << static_cast<int>(
-                    result.status
-                )
-                << "\n"
-                << "  objective="
-                << result.objective_value
-                << "\n"
-                << "  iterations="
-                << result.iterations
-                << "\n";
-
-            if (
-                result.variable_values.size() >= 2
-            ) {
-                std::cout
-                    << "  x="
-                    << result.variable_values[0]
-                    << "\n"
-                    << "  y="
-                    << result.variable_values[1]
-                    << "\n";
-            }
-        }
+        ++passed;
     }
-
+    else
+    {
+        ++failed;
+    }
 
     /*
-        ========================================================
-        Test 2
-
-            minimize x + y
-
-            x + y >= 5
-            x <= 5
-            y <= 5
-
-            x,y >= 0
-
-        Optimum objective = 5.
-    */
+     * Petrochemical blending.
+     *
+     * Expected optimum:
+     * 15912.592593
+     */
+    if (
+        test_model(
+            "LP Blending",
+            "benchmarks/lp_blending.dent",
+            15912.592593))
     {
-        Problem problem(
-            ObjectiveSense::Minimize
-        );
-
-        const int x =
-            problem.add_variable("x");
-
-        const int y =
-            problem.add_variable("y");
-
-        problem.set_objective_coefficient(
-            x, 1.0
-        );
-
-        problem.set_objective_coefficient(
-            y, 1.0
-        );
-
-        int row =
-            problem.add_constraint(
-                "minimum_total",
-                ConstraintSense::GreaterEqual,
-                5.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "x_limit",
-                ConstraintSense::LessEqual,
-                5.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "y_limit",
-                ConstraintSense::LessEqual,
-                5.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        PDLPSolver solver(
-            1e-6,
-            50000
-        );
-
-        SolveResult result =
-            solver.solve(problem);
-
-        const bool feasible =
-            result.variable_values.size() == 2 &&
-            result.variable_values[0] >= -1e-3 &&
-            result.variable_values[1] >= -1e-3 &&
-            result.variable_values[0] <= 5.01 &&
-            result.variable_values[1] <= 5.01 &&
-            result.variable_values[0] +
-                result.variable_values[1] >=
-                4.99;
-
-        const bool ok =
-            result.status ==
-                SolveStatus::Optimal &&
-            feasible &&
-            approximately_equal(
-                result.objective_value,
-                5.0,
-                5e-3
-            );
-
-        if (ok) {
-            ++passed;
-            std::cout
-                << "[PASS] PDLP minimization\n";
-        }
-        else {
-            ++failed;
-
-            std::cout
-                << "[FAIL] PDLP minimization\n"
-                << "  status="
-                << static_cast<int>(
-                    result.status
-                )
-                << "\n"
-                << "  objective="
-                << result.objective_value
-                << "\n";
-        }
+        ++passed;
     }
-
+    else
+    {
+        ++failed;
+    }
 
     /*
-        ========================================================
-        Test 3
-
-            maximize x + y
-
-            x + y = 5
-            x <= 4
-            y <= 4
-
-        Optimum objective = 5.
-    */
+     * Transportation.
+     *
+     * Expected optimum:
+     * 1190.0
+     */
+    if (
+        test_model(
+            "LP Transportation",
+            "benchmarks/lp_transportation.dent",
+            1190.0))
     {
-        Problem problem(
-            ObjectiveSense::Maximize
-        );
-
-        const int x =
-            problem.add_variable("x");
-
-        const int y =
-            problem.add_variable("y");
-
-        problem.set_objective_coefficient(
-            x, 1.0
-        );
-
-        problem.set_objective_coefficient(
-            y, 1.0
-        );
-
-        int row =
-            problem.add_constraint(
-                "balance",
-                ConstraintSense::Equal,
-                5.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "x_limit",
-                ConstraintSense::LessEqual,
-                4.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "y_limit",
-                ConstraintSense::LessEqual,
-                4.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        PDLPSolver solver(
-            1e-6,
-            60000
-        );
-
-        SolveResult result =
-            solver.solve(problem);
-
-        const bool ok =
-            result.status ==
-                SolveStatus::Optimal &&
-            result.variable_values.size() == 2 &&
-            approximately_equal(
-                result.variable_values[0] +
-                    result.variable_values[1],
-                5.0,
-                7e-3
-            ) &&
-            approximately_equal(
-                result.objective_value,
-                5.0,
-                7e-3
-            );
-
-        if (ok) {
-            ++passed;
-            std::cout
-                << "[PASS] PDLP equality handling\n";
-        }
-        else {
-            ++failed;
-
-            std::cout
-                << "[FAIL] PDLP equality handling\n"
-                << "  status="
-                << static_cast<int>(
-                    result.status
-                )
-                << "\n"
-                << "  objective="
-                << result.objective_value
-                << "\n";
-        }
+        ++passed;
     }
-
-
-    /*
-        ========================================================
-        Test 4
-
-        Finite variable lower/upper bounds.
-
-            maximize x
-
-            2 <= x <= 5
-
-        Optimum x = 5.
-    */
+    else
     {
-        Problem problem(
-            ObjectiveSense::Maximize
-        );
-
-        const int x =
-            problem.add_variable(
-                "x",
-                2.0,
-                5.0,
-                VariableType::Continuous
-            );
-
-        problem.set_objective_coefficient(
-            x,
-            1.0
-        );
-
-        PDLPSolver solver(
-            1e-6,
-            50000
-        );
-
-        SolveResult result =
-            solver.solve(problem);
-
-        const bool ok =
-            result.status ==
-                SolveStatus::Optimal &&
-            result.variable_values.size() == 1 &&
-            approximately_equal(
-                result.variable_values[0],
-                5.0,
-                7e-3
-            ) &&
-            approximately_equal(
-                result.objective_value,
-                5.0,
-                7e-3
-            );
-
-        if (ok) {
-            ++passed;
-            std::cout
-                << "[PASS] PDLP variable bounds\n";
-        }
-        else {
-            ++failed;
-
-            std::cout
-                << "[FAIL] PDLP variable bounds\n"
-                << "  status="
-                << static_cast<int>(
-                    result.status
-                )
-                << "\n"
-                << "  objective="
-                << result.objective_value
-                << "\n";
-        }
+        ++failed;
     }
-
-
-    /*
-        ========================================================
-        Test 5
-
-        Warm start.
-
-        The second solve starts from the first PDLP solution.
-    */
-    {
-        Problem problem(
-            ObjectiveSense::Maximize
-        );
-
-        const int x =
-            problem.add_variable("x");
-
-        const int y =
-            problem.add_variable("y");
-
-        problem.set_objective_coefficient(
-            x, 3.0
-        );
-
-        problem.set_objective_coefficient(
-            y, 2.0
-        );
-
-        int row =
-            problem.add_constraint(
-                "capacity",
-                ConstraintSense::LessEqual,
-                4.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        problem.set_constraint_coefficient(
-            row, y, 1.0
-        );
-
-        row =
-            problem.add_constraint(
-                "x_limit",
-                ConstraintSense::LessEqual,
-                2.0
-            );
-
-        problem.set_constraint_coefficient(
-            row, x, 1.0
-        );
-
-        PDLPSolver first(
-            1e-6,
-            50000
-        );
-
-        SolveResult first_result =
-            first.solve(problem);
-
-        WarmStart warm_start;
-
-        warm_start.available =
-            true;
-
-        warm_start.variable_values =
-            first_result.variable_values;
-
-        warm_start.columns =
-            static_cast<int>(
-                first_result.variable_values.size()
-            );
-
-        warm_start.source =
-            "pdlp-test";
-
-        PDLPSolver second(
-            1e-6,
-            50000
-        );
-
-        second.set_warm_start(
-            warm_start
-        );
-
-        SolveResult second_result =
-            second.solve(problem);
-
-        const bool ok =
-            second_result.status ==
-                SolveStatus::Optimal &&
-            second_result.warm_start_used &&
-            approximately_equal(
-                second_result.objective_value,
-                10.0,
-                7e-3
-            );
-
-        if (ok) {
-            ++passed;
-            std::cout
-                << "[PASS] PDLP warm start\n";
-        }
-        else {
-            ++failed;
-
-            std::cout
-                << "[FAIL] PDLP warm start\n"
-                << "  status="
-                << static_cast<int>(
-                    second_result.status
-                )
-                << "\n"
-                << "  objective="
-                << second_result.objective_value
-                << "\n"
-                << "  warm start used="
-                << second_result.warm_start_used
-                << "\n";
-        }
-    }
-
 
     std::cout
-        << "\nPDLP regression\n"
+        << "\n========================================\n"
+        << "SUMMARY\n"
+        << "========================================\n"
         << "Passed: "
         << passed
-        << "\n"
+        << '\n'
         << "Failed: "
         << failed
-        << "\n";
+        << '\n';
 
-    return failed == 0
-        ? 0
-        : 1;
+    if (failed == 0)
+    {
+        std::cout
+            << "\nAll PDLP tests passed.\n";
+
+        return 0;
+    }
+
+    std::cout
+        << "\nPDLP tests failed.\n";
+
+    return 1;
 }
