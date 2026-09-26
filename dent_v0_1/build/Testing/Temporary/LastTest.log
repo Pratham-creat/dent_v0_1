@@ -1,10 +1,10 @@
-Start testing: Sep 26 16:53 India Standard Time
+Start testing: Sep 26 17:41 India Standard Time
 ----------------------------------------------------------
-1/6 Testing: dent_solver_industry_test
-1/6 Test: dent_solver_industry_test
+1/8 Testing: dent_solver_industry_test
+1/8 Test: dent_solver_industry_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_solver_industry_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_solver_industry_test" start time: Sep 26 16:53 India Standard Time
+"dent_solver_industry_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 ============================================================
@@ -46,15 +46,15 @@ DENT Dual Simplex regression suite PASSED.
 Test time =   0.06 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_solver_industry_test" end time: Sep 26 16:53 India Standard Time
+"dent_solver_industry_test" end time: Sep 26 17:41 India Standard Time
 "dent_solver_industry_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-2/6 Testing: dent_interior_point_test
-2/6 Test: dent_interior_point_test
+2/8 Testing: dent_interior_point_test
+2/8 Test: dent_interior_point_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_interior_point_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_interior_point_test" start time: Sep 26 16:53 India Standard Time
+"dent_interior_point_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 DENT INTERIOR-POINT REGRESSION SUITE
@@ -83,15 +83,15 @@ Total  : 16
 Test time =   0.06 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_interior_point_test" end time: Sep 26 16:53 India Standard Time
+"dent_interior_point_test" end time: Sep 26 17:41 India Standard Time
 "dent_interior_point_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-3/6 Testing: dent_model_parser_test
-3/6 Test: dent_model_parser_test
+3/8 Testing: dent_model_parser_test
+3/8 Test: dent_model_parser_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_model_parser_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_model_parser_test" start time: Sep 26 16:53 India Standard Time
+"dent_model_parser_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 ============================================================
@@ -129,15 +129,15 @@ DENT .dent parser regression suite PASSED.
 Test time =   0.07 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_model_parser_test" end time: Sep 26 16:53 India Standard Time
+"dent_model_parser_test" end time: Sep 26 17:41 India Standard Time
 "dent_model_parser_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-4/6 Testing: dent_scaling_test
-4/6 Test: dent_scaling_test
+4/8 Testing: dent_scaling_test
+4/8 Test: dent_scaling_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_scaling_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_scaling_test" start time: Sep 26 16:53 India Standard Time
+"dent_scaling_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 ============================================================
@@ -170,15 +170,15 @@ DENT scaling regression suite PASSED.
 Test time =   0.05 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_scaling_test" end time: Sep 26 16:53 India Standard Time
+"dent_scaling_test" end time: Sep 26 17:41 India Standard Time
 "dent_scaling_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-5/6 Testing: dent_milp_branching_test
-5/6 Test: dent_milp_branching_test
+5/8 Testing: dent_milp_branching_test
+5/8 Test: dent_milp_branching_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_milp_branching_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_milp_branching_test" start time: Sep 26 16:53 India Standard Time
+"dent_milp_branching_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 [PASS] Branching MILP
@@ -190,18 +190,18 @@ MILP strengthening regression
 Passed: 4
 Failed: 0
 <end of output>
-Test time =   0.07 sec
+Test time =   0.06 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_milp_branching_test" end time: Sep 26 16:53 India Standard Time
+"dent_milp_branching_test" end time: Sep 26 17:41 India Standard Time
 "dent_milp_branching_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-6/6 Testing: dent_pdhg_test
-6/6 Test: dent_pdhg_test
+6/8 Testing: dent_pdhg_test
+6/8 Test: dent_pdhg_test
 Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_pdhg_test.exe"
 Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
-"dent_pdhg_test" start time: Sep 26 16:53 India Standard Time
+"dent_pdhg_test" start time: Sep 26 17:41 India Standard Time
 Output:
 ----------------------------------------------------------
 [PASS] PDHG continuous LP
@@ -213,11 +213,67 @@ PDHG regression
 Passed: 4
 Failed: 0
 <end of output>
-Test time =   0.08 sec
+Test time =   0.09 sec
 ----------------------------------------------------------
 Test Passed.
-"dent_pdhg_test" end time: Sep 26 16:53 India Standard Time
+"dent_pdhg_test" end time: Sep 26 17:41 India Standard Time
 "dent_pdhg_test" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-End testing: Sep 26 16:53 India Standard Time
+7/8 Testing: dent_pdlp_test
+7/8 Test: dent_pdlp_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_pdlp_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
+"dent_pdlp_test" start time: Sep 26 17:41 India Standard Time
+Output:
+----------------------------------------------------------
+[PASS] PDLP basic LP
+[PASS] PDLP minimization
+[PASS] PDLP equality handling
+[PASS] PDLP variable bounds
+[PASS] PDLP warm start
+
+PDLP regression
+Passed: 5
+Failed: 0
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"dent_pdlp_test" end time: Sep 26 17:41 India Standard Time
+"dent_pdlp_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/8 Testing: dent_dispatcher_test
+8/8 Test: dent_dispatcher_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_dispatcher_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build
+"dent_dispatcher_test" start time: Sep 26 17:41 India Standard Time
+Output:
+----------------------------------------------------------
+DENT ADAPTIVE DISPATCHER REGRESSION SUITE
+
+[PASS] Small LP -> Primal Simplex
+[PASS] Small LP -> CPU execution
+[PASS] Large sparse LP -> Interior Point
+[PASS] IPM solver name reported
+[PASS] IPM -> CPU execution
+[PASS] Continuous QP -> QP solver
+[PASS] MILP -> Branch-and-Bound
+[PASS] MIQP -> Unsupported
+[PASS] Primal Simplex method name
+[PASS] Interior Point method name
+[PASS] MILP method name
+
+Passed : 11
+Failed : 0
+Total  : 11
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"dent_dispatcher_test" end time: Sep 26 17:41 India Standard Time
+"dent_dispatcher_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 26 17:41 India Standard Time

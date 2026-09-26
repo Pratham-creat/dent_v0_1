@@ -8,6 +8,9 @@
       <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent.exe</FullPath>
     </ProjectOutput>
     <ProjectOutput>
+      <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_dispatcher_test.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
       <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_interior_point_test.exe</FullPath>
     </ProjectOutput>
     <ProjectOutput>
@@ -20,7 +23,13 @@
       <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_pdhg_test.exe</FullPath>
     </ProjectOutput>
     <ProjectOutput>
+      <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_pdlp_test.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
       <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_scaling_test.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_solution_validator_test.exe</FullPath>
     </ProjectOutput>
     <ProjectOutput>
       <FullPath>C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\Release\dent_solver_industry_test.exe</FullPath>

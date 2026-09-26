@@ -6,8 +6,10 @@ namespace dent {
 
 const char* solver_method_name(
     SolverMethod method
-) {
+)
+{
     switch (method) {
+
         case SolverMethod::PrimalSimplex:
             return "Primal Simplex";
 
@@ -16,6 +18,12 @@ const char* solver_method_name(
 
         case SolverMethod::InteriorPoint:
             return "Interior Point";
+
+        case SolverMethod::PDHG:
+            return "PDHG";
+
+        case SolverMethod::PDLP:
+            return "PDLP";
 
         case SolverMethod::QP:
             return "QP";
@@ -29,27 +37,25 @@ const char* solver_method_name(
     }
 }
 
+
 DispatchDecision AdaptiveDispatcher::dispatch(
     const Problem& problem,
     const ProblemFingerprint& fingerprint
-) const {
+) const
+{
     (void)problem;
 
     /*
-     * Mixed-integer models take the MILP path first.
-     *
-     * Explicitly mixed-integer models are represented by the
-     * corresponding fingerprint flag.
+     * Mixed-integer models always take the MILP path.
      */
     if (fingerprint.is_mixed_integer) {
-
         return dispatch_mixed_integer(
             fingerprint
         );
     }
 
     /*
-     * Quadratic continuous models use the QP solver.
+     * Quadratic continuous models use QP.
      */
     if (fingerprint.has_quadratic_objective) {
         return dispatch_quadratic_program(
@@ -58,12 +64,13 @@ DispatchDecision AdaptiveDispatcher::dispatch(
     }
 
     /*
-     * Remaining supported continuous linear models
-     * are LPs.
+     * Remaining supported continuous models are LPs.
      */
-    return dispatch_linear_program(
-        fingerprint
-    );
+    if (fingerprint.is_linear) {
+        return dispatch_linear_program(
+            fingerprint
+        );
+    }
 
     DispatchDecision decision;
 
@@ -85,92 +92,86 @@ DispatchDecision AdaptiveDispatcher::dispatch(
     return decision;
 }
 
+
 DispatchDecision AdaptiveDispatcher::dispatch_linear_program(
     const ProblemFingerprint& fingerprint
-) const {
+) const
+{
     DispatchDecision decision;
 
     /*
-     * Current IPM selection policy:
+     * Current continuous LP policy:
      *
-     * Use IPM when the LP is sufficiently large or
-     * strongly sparse.
+     * 1. Large LP
+     *      -> Interior Point
      *
-     * Small/ordinary LPs remain on primal Simplex.
+     * 2. Large poorly-scaled LP
+     *      -> Interior Point
      *
-     * This is intentionally conservative. We do not
-     * claim IPM is universally faster.
+     * 3. Highly sparse but non-large LP
+     *      -> PDHG
+     *
+     * 4. Small/ordinary LP
+     *      -> Primal Simplex
+     *
+     * PDLP is deliberately not automatically selected yet.
+     *
+     * It is implemented and tested, but its production
+     * dispatch policy should be established after benchmarking
+     * it against Simplex/IPM/PDHG on representative LP sets.
+     *
+     * This avoids claiming a performance advantage before
+     * benchmark evidence exists.
      */
 
-    const bool large =
-        fingerprint.large_problem;
-
-    const bool highly_sparse =
-        fingerprint.highly_sparse;
-
-    const bool poorly_scaled =
-        fingerprint.poorly_scaled;
-
-    if (large && highly_sparse) {
-
+    if (
+        fingerprint.large_problem
+    ) {
         decision.method =
             SolverMethod::InteriorPoint;
 
-        decision.reason =
-            "Large sparse continuous LP; "
-            "Interior Point selected for scalable "
-            "primal-dual iterations.";
-
+        if (
+            fingerprint.highly_sparse
+        ) {
+            decision.reason =
+                "Large sparse continuous LP; "
+                "Interior Point selected for scalable "
+                "sparse primal-dual optimization.";
+        }
+        else if (
+            fingerprint.poorly_scaled
+        ) {
+            decision.reason =
+                "Large poorly scaled continuous LP; "
+                "Interior Point selected after "
+                "presolve/scaling for numerical robustness.";
+        }
+        else {
+            decision.reason =
+                "Large continuous LP; "
+                "Interior Point selected to avoid "
+                "simplex basis growth on larger models.";
+        }
     }
-    else if (large) {
-
+    else if (
+        fingerprint.highly_sparse
+    ) {
         decision.method =
-            SolverMethod::InteriorPoint;
-
-        decision.reason =
-            "Large continuous LP; "
-            "Interior Point selected to avoid "
-            "simplex basis-growth on larger models.";
-
-    }
-    else if (highly_sparse) {
-
-        decision.method =
-            SolverMethod::InteriorPoint;
+            SolverMethod::PDHG;
 
         decision.reason =
             "Highly sparse continuous LP; "
-            "Interior Point selected for sparse "
-            "matrix-oriented computation.";
-
-    }
-    else if (poorly_scaled) {
-
-        /*
-         * Presolve/scaling runs before dispatch.
-         *
-         * For now we still use IPM for a poorly scaled
-         * continuous LP because the IPM path already has
-         * regularization in its Newton system.
-         */
-        decision.method =
-            SolverMethod::InteriorPoint;
-
-        decision.reason =
-            "Poorly scaled continuous LP; "
-            "Interior Point selected after presolve/scaling "
-            "for numerical robustness.";
-
+            "PDHG selected as the lightweight "
+            "primal-dual first-order method.";
     }
     else {
-
         decision.method =
             SolverMethod::PrimalSimplex;
 
         decision.reason =
             "Small or ordinary continuous LP; "
-            "Primal Simplex selected for direct basis-based "
-            "optimization.";
+            "Primal Simplex selected for direct "
+            "basis-based optimization.";
     }
 
     decision.solver_name =
@@ -181,16 +182,18 @@ DispatchDecision AdaptiveDispatcher::dispatch_linear_program(
     decision.use_cpu = true;
 
     /*
-     * CUDA is intentionally disabled for this stage.
+     * CUDA remains intentionally disabled.
      */
     decision.use_gpu = false;
 
     return decision;
 }
 
+
 DispatchDecision AdaptiveDispatcher::dispatch_quadratic_program(
     const ProblemFingerprint& fingerprint
-) const {
+) const
+{
     DispatchDecision decision;
 
     if (fingerprint.is_mixed_integer) {
@@ -231,13 +234,16 @@ DispatchDecision AdaptiveDispatcher::dispatch_quadratic_program(
     return decision;
 }
 
+
 DispatchDecision AdaptiveDispatcher::dispatch_mixed_integer(
     const ProblemFingerprint& fingerprint
-) const {
+) const
+{
     DispatchDecision decision;
 
-    if (fingerprint.has_quadratic_objective) {
-
+    if (
+        fingerprint.has_quadratic_objective
+    ) {
         decision.method =
             SolverMethod::Unsupported;
 

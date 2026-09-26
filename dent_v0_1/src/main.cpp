@@ -7,6 +7,8 @@
 #include "dent/solver/dual_simplex.hpp"
 #include "dent/solver/interior_point.hpp"
 #include "dent/solver/milp.hpp"
+#include "dent/solver/pdhg.hpp"
+#include "dent/solver/pdlp.hpp"
 #include "dent/solver/qp.hpp"
 #include "dent/solver/simplex.hpp"
 
@@ -395,10 +397,6 @@ int main(
 
     try
     {
-        // ========================================================
-        // DENT BANNER
-        // ========================================================
-
         std::cout
             << "\n========================================\n"
             << "       DENT OPTIMIZATION ENGINE\n"
@@ -407,10 +405,6 @@ int main(
         std::cout
             << "DENT converts real-world planning problems\n"
             << "into mathematical optimization models.\n\n";
-
-        // ========================================================
-        // MODEL INPUT
-        // ========================================================
 
         Problem original_problem;
 
@@ -443,6 +437,7 @@ int main(
             << "\n========================================\n"
             << "             MODEL READY\n"
             << "========================================\n";
+
 
         // ========================================================
         // PRESOLVE
@@ -491,6 +486,7 @@ int main(
             return 0;
         }
 
+
         // ========================================================
         // FINGERPRINT
         // ========================================================
@@ -503,6 +499,7 @@ int main(
         print_fingerprint(
             fingerprint
         );
+
 
         // ========================================================
         // ADAPTIVE DISPATCH
@@ -533,12 +530,10 @@ int main(
             return 0;
         }
 
-        // ========================================================
-        // SOLVER
-        // ========================================================
 
         const Problem& solve_problem =
             presolve.reduced_problem;
+
 
         // ========================================================
         // PRIMAL SIMPLEX
@@ -585,6 +580,7 @@ int main(
             return 0;
         }
 
+
         // ========================================================
         // DUAL SIMPLEX
         // ========================================================
@@ -630,6 +626,7 @@ int main(
             return 0;
         }
 
+
         // ========================================================
         // INTERIOR POINT
         // ========================================================
@@ -674,6 +671,99 @@ int main(
 
             return 0;
         }
+
+
+        // ========================================================
+        // PDHG
+        // ========================================================
+
+        if (
+            decision.method ==
+            SolverMethod::PDHG
+        )
+        {
+            std::cout
+                << "\nStarting DENT PDHG solver...\n";
+
+            PDHGSolver solver(
+                1e-7,
+                30000
+            );
+
+            SolveResult result =
+                solver.solve(
+                    solve_problem
+                );
+
+            std::vector<double> original_values =
+                presolve.postsolve_values(
+                    result.variable_values
+                );
+
+            double original_objective =
+                presolve.postsolve_objective(
+                    result.objective_value
+                );
+
+            print_solution(
+                original_problem,
+                original_values,
+                original_objective,
+                result.status,
+                result.message.empty()
+                    ? "PDHG completed."
+                    : result.message
+            );
+
+            return 0;
+        }
+
+
+        // ========================================================
+        // PDLP
+        // ========================================================
+
+        if (
+            decision.method ==
+            SolverMethod::PDLP
+        )
+        {
+            std::cout
+                << "\nStarting DENT PDLP solver...\n";
+
+            PDLPSolver solver(
+                1e-7,
+                50000
+            );
+
+            SolveResult result =
+                solver.solve(
+                    solve_problem
+                );
+
+            std::vector<double> original_values =
+                presolve.postsolve_values(
+                    result.variable_values
+                );
+
+            double original_objective =
+                presolve.postsolve_objective(
+                    result.objective_value
+                );
+
+            print_solution(
+                original_problem,
+                original_values,
+                original_objective,
+                result.status,
+                result.message.empty()
+                    ? "PDLP completed."
+                    : result.message
+            );
+
+            return 0;
+        }
+
 
         // ========================================================
         // MILP
@@ -764,6 +854,7 @@ int main(
             return 0;
         }
 
+
         // ========================================================
         // QP
         // ========================================================
@@ -809,16 +900,15 @@ int main(
             return 0;
         }
 
-        // ========================================================
-        // UNKNOWN
-        // ========================================================
 
         std::cout
             << "\nUnexpected dispatcher state.\n";
 
         return 0;
     }
-    catch (const std::exception& error)
+    catch (
+        const std::exception& error
+    )
     {
         std::cerr
             << "\nDENT ERROR: "

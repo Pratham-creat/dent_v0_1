@@ -4,10 +4,12 @@ C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\presolve.cpp;C:\User
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\scaling.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\scaling.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\fingerprint.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\fingerprint.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\dispatcher.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\dispatcher.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\validation\solution_validator.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\solution_validator.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\simplex.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\dual_simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\dual_simplex.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\interior_point.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdhg.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\pdhg.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdlp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\pdlp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\milp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\qp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\qp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\solver_session.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\solver_session.obj

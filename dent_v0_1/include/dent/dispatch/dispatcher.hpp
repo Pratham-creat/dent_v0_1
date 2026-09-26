@@ -12,6 +12,8 @@ enum class SolverMethod {
     PrimalSimplex,
     DualSimplex,
     InteriorPoint,
+    PDHG,
+    PDLP,
     QP,
     MILP,
     Unsupported

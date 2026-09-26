@@ -19,6 +19,9 @@
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\dispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\validation\solution_validator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -29,6 +32,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdhg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdlp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp">

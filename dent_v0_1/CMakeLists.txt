@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(dent VERSION 0.8.0 LANGUAGES CXX)
+project(dent VERSION 0.10.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,10 +20,13 @@ add_library(
     src/dispatch/fingerprint.cpp
     src/dispatch/dispatcher.cpp
 
+    src/validation/solution_validator.cpp
+
     src/solver/simplex.cpp
     src/solver/dual_simplex.cpp
     src/solver/interior_point.cpp
     src/solver/pdhg.cpp
+    src/solver/pdlp.cpp
     src/solver/milp.cpp
     src/solver/qp.cpp
     src/solver/solver_session.cpp
@@ -37,7 +40,6 @@ add_library(
 
 target_include_directories(
     dent_core
-
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -47,7 +49,6 @@ add_executable(
     dent
     src/main.cpp
 )
-
 
 target_link_libraries(
     dent
@@ -158,4 +159,54 @@ target_link_libraries(
 add_test(
     NAME dent_pdhg_test
     COMMAND dent_pdhg_test
+)
+
+
+add_executable(
+    dent_pdlp_test
+    tests/solver/pdlp_test.cpp
+)
+
+target_link_libraries(
+    dent_pdlp_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_pdlp_test
+    COMMAND dent_pdlp_test
+)
+
+
+add_executable(
+    dent_dispatcher_test
+    tests/dispatch/dispatcher_test.cpp
+)
+
+target_link_libraries(
+    dent_dispatcher_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_dispatcher_test
+    COMMAND dent_dispatcher_test
+)
+
+add_executable(
+    dent_solution_validator_test
+    tests/validation/solution_validator_test.cpp
+)
+
+target_link_libraries(
+    dent_solution_validator_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_solution_validator_test
+    COMMAND dent_solution_validator_test
 )
