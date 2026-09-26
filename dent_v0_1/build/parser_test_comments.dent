@@ -1,0 +1,12 @@
+# model
+PROBLEM: Labelled Model
+
+MAXIMIZE
+    5 x + 7 y # objective
+
+SUBJECT TO
+    capacity: 2 x + y <= 10
+    demand: x + 2 y >= 4
+
+INTEGER
+    x y

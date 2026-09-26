@@ -28,6 +28,9 @@
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdhg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

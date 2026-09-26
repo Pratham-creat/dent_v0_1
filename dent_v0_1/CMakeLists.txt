@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(dent VERSION 0.7.0 LANGUAGES CXX)
+project(dent VERSION 0.8.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,7 @@ add_library(
     src/solver/simplex.cpp
     src/solver/dual_simplex.cpp
     src/solver/interior_point.cpp
+    src/solver/pdhg.cpp
     src/solver/milp.cpp
     src/solver/qp.cpp
     src/solver/solver_session.cpp
@@ -63,13 +64,11 @@ add_executable(
     tests/solver/solver_industry_test.cpp
 )
 
-
 target_link_libraries(
     dent_solver_industry_test
     PRIVATE
         dent_core
 )
-
 
 add_test(
     NAME dent_solver_industry_test
@@ -82,13 +81,11 @@ add_executable(
     tests/solver/interior_point_test.cpp
 )
 
-
 target_link_libraries(
     dent_interior_point_test
     PRIVATE
         dent_core
 )
-
 
 add_test(
     NAME dent_interior_point_test
@@ -101,13 +98,11 @@ add_executable(
     tests/io/model_parser_test.cpp
 )
 
-
 target_link_libraries(
     dent_model_parser_test
     PRIVATE
         dent_core
 )
-
 
 add_test(
     NAME dent_model_parser_test
@@ -120,13 +115,11 @@ add_executable(
     tests/presolve/scaling_test.cpp
 )
 
-
 target_link_libraries(
     dent_scaling_test
     PRIVATE
         dent_core
 )
-
 
 add_test(
     NAME dent_scaling_test
@@ -139,15 +132,30 @@ add_executable(
     tests/solver/milp_branching_test.cpp
 )
 
-
 target_link_libraries(
     dent_milp_branching_test
     PRIVATE
         dent_core
 )
 
-
 add_test(
     NAME dent_milp_branching_test
     COMMAND dent_milp_branching_test
+)
+
+
+add_executable(
+    dent_pdhg_test
+    tests/solver/pdhg_test.cpp
+)
+
+target_link_libraries(
+    dent_pdhg_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_pdhg_test
+    COMMAND dent_pdhg_test
 )

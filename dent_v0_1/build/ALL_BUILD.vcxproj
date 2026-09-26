@@ -194,6 +194,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{87F234CA-95DE-3A3B-98A0-DC5AF63DA64D}</Project>
       <Name>dent_model_parser_test</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_pdhg_test.vcxproj">
+      <Project>{FDF6210B-8E57-3021-85C4-AC7EBBDD180F}</Project>
+      <Name>dent_pdhg_test</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_scaling_test.vcxproj">
       <Project>{8D9C0847-B92F-34C2-BE2C-2AAEF1C4CEC2}</Project>
       <Name>dent_scaling_test</Name>

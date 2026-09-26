@@ -1,0 +1,10 @@
+PROBLEM: Invalid
+
+MAXIMIZE
+    5 x
+
+SUBJECT TO
+    x ??? 10
+
+CONTINUOUS
+    x

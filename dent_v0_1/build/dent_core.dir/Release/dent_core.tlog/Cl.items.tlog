@@ -7,6 +7,7 @@ C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\dispatcher.cpp;C:\Us
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\simplex.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\dual_simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\dual_simplex.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\interior_point.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdhg.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\pdhg.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\milp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\qp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\qp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\solver_session.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\solver_session.obj

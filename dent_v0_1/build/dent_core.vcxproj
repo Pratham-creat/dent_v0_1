@@ -309,6 +309,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp" />
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\dual_simplex.cpp" />
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp" />
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\pdhg.cpp" />
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp" />
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\qp.cpp" />
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\solver_session.cpp" />
