@@ -15,7 +15,6 @@ constexpr double EPS = 1e-9;
 constexpr double INF =
     std::numeric_limits<double>::infinity();
 
-
 struct SimplexTableau {
 
     std::vector<std::vector<double>> a;
@@ -28,9 +27,9 @@ struct SimplexTableau {
 
 
 /*
-    ------------------------------------------------------------
-    Pivot
-    ------------------------------------------------------------
+    ============================================================
+    Basic tableau operations
+    ============================================================
 */
 
 void pivot(
@@ -39,79 +38,54 @@ void pivot(
     int column
 )
 {
-    const int rows =
-        tab.rows;
-
-    const int columns =
-        tab.columns;
-
-    double p =
+    const double p =
         tab.a[row][column];
 
-    if (
-        std::abs(p) <= EPS
-    ) {
+    if (std::abs(p) <= EPS) {
 
         throw std::runtime_error(
             "Simplex encountered a zero pivot."
         );
     }
 
-    /*
-        Normalize pivot row.
-    */
-
     for (
         int j = 0;
-        j <= columns;
+        j <= tab.columns;
         ++j
     ) {
 
         tab.a[row][j] /= p;
     }
 
-    /*
-        Eliminate pivot column
-        from every other row.
-    */
-
     for (
         int i = 0;
-        i <= rows;
+        i <= tab.rows;
         ++i
     ) {
 
-        if (
-            i == row
-        ) {
-
+        if (i == row) {
             continue;
         }
 
-        double factor =
+        const double factor =
             tab.a[i][column];
 
-        if (
-            std::abs(factor) <= EPS
-        ) {
-
+        if (std::abs(factor) <= EPS) {
             continue;
         }
 
         for (
             int j = 0;
-            j <= columns;
+            j <= tab.columns;
             ++j
         ) {
 
-            if (
-                j == column
-            ) {
+            if (j == column) {
 
                 tab.a[i][j] =
                     0.0;
-            }
-            else {
+
+            } else {
 
                 tab.a[i][j] -=
                     factor *
@@ -126,9 +100,9 @@ void pivot(
 
 
 /*
-    ------------------------------------------------------------
+    ============================================================
     Build initial tableau
-    ------------------------------------------------------------
+    ============================================================
 */
 
 SimplexTableau build_tableau(
@@ -144,11 +118,6 @@ SimplexTableau build_tableau(
         static_cast<int>(
             problem.constraints().size()
         );
-
-    /*
-        Current DENT Simplex works with
-        x >= 0.
-    */
 
     for (
         const auto& variable :
@@ -183,14 +152,6 @@ SimplexTableau build_tableau(
         }
     }
 
-    /*
-        Count additional columns.
-
-        <= : slack
-        >= : surplus + artificial
-        =  : artificial
-    */
-
     int extra =
         0;
 
@@ -205,15 +166,15 @@ SimplexTableau build_tableau(
         ) {
 
             extra += 1;
-        }
-        else if (
+
+        } else if (
             constraint.sense ==
             ConstraintSense::GreaterEqual
         ) {
 
             extra += 2;
-        }
-        else {
+
+        } else {
 
             extra += 1;
         }
@@ -243,12 +204,6 @@ SimplexTableau build_tableau(
     int next_column =
         n;
 
-    /*
-        --------------------------------------------------------
-        Constraints
-        --------------------------------------------------------
-    */
-
     for (
         int i = 0;
         i < m;
@@ -267,13 +222,7 @@ SimplexTableau build_tableau(
         bool flipped =
             false;
 
-        /*
-            Make RHS non-negative.
-        */
-
-        if (
-            rhs < -EPS
-        ) {
+        if (rhs < -EPS) {
 
             rhs =
                 -rhs;
@@ -288,8 +237,8 @@ SimplexTableau build_tableau(
 
                 sense =
                     ConstraintSense::GreaterEqual;
-            }
-            else if (
+
+            } else if (
                 sense ==
                 ConstraintSense::GreaterEqual
             ) {
@@ -298,10 +247,6 @@ SimplexTableau build_tableau(
                     ConstraintSense::LessEqual;
             }
         }
-
-        /*
-            Original variables.
-        */
 
         for (
             int j = 0;
@@ -312,12 +257,8 @@ SimplexTableau build_tableau(
             double value =
                 problem.matrix()[i][j];
 
-            if (
-                flipped
-            ) {
-
-                value =
-                    -value;
+            if (flipped) {
+                value = -value;
             }
 
             tab.a[i][j] =
@@ -327,16 +268,12 @@ SimplexTableau build_tableau(
         tab.a[i][tab.columns] =
             rhs;
 
-        /*
-            <=
-        */
-
         if (
             sense ==
             ConstraintSense::LessEqual
         ) {
 
-            int slack =
+            const int slack =
                 next_column++;
 
             tab.a[i][slack] =
@@ -344,21 +281,16 @@ SimplexTableau build_tableau(
 
             tab.basis[i] =
                 slack;
-        }
 
-        /*
-            >=
-        */
-
-        else if (
+        } else if (
             sense ==
             ConstraintSense::GreaterEqual
         ) {
 
-            int surplus =
+            const int surplus =
                 next_column++;
 
-            int artificial =
+            const int artificial =
                 next_column++;
 
             tab.a[i][surplus] =
@@ -369,15 +301,10 @@ SimplexTableau build_tableau(
 
             tab.basis[i] =
                 artificial;
-        }
 
-        /*
-            =
-        */
+        } else {
 
-        else {
-
-            int artificial =
+            const int artificial =
                 next_column++;
 
             tab.a[i][artificial] =
@@ -393,9 +320,9 @@ SimplexTableau build_tableau(
 
 
 /*
-    ------------------------------------------------------------
-    Set objective row
-    ------------------------------------------------------------
+    ============================================================
+    Objective
+    ============================================================
 */
 
 void set_objective(
@@ -403,10 +330,6 @@ void set_objective(
     const std::vector<double>& c
 )
 {
-    /*
-        z - c*x = 0
-    */
-
     for (
         int j = 0;
         j < tab.columns;
@@ -417,9 +340,7 @@ void set_objective(
             0.0;
     }
 
-    tab.a[tab.rows][
-        tab.columns
-    ] =
+    tab.a[tab.rows][tab.columns] =
         0.0;
 
     for (
@@ -432,35 +353,26 @@ void set_objective(
             -c[j];
     }
 
-    /*
-        Make objective row consistent
-        with current basis.
-    */
-
     for (
         int i = 0;
         i < tab.rows;
         ++i
     ) {
 
-        int basic =
+        const int basic =
             tab.basis[i];
 
         if (
             basic < 0 ||
             basic >= tab.columns
         ) {
-
             continue;
         }
 
-        double cb =
+        const double cb =
             c[basic];
 
-        if (
-            std::abs(cb) <= EPS
-        ) {
-
+        if (std::abs(cb) <= EPS) {
             continue;
         }
 
@@ -479,9 +391,9 @@ void set_objective(
 
 
 /*
-    ------------------------------------------------------------
-    Simplex iterations
-    ------------------------------------------------------------
+    ============================================================
+    Primal Simplex iterations
+    ============================================================
 */
 
 SolveStatus simplex_iterations(
@@ -497,11 +409,6 @@ SolveStatus simplex_iterations(
         iterations <
         max_iterations
     ) {
-
-        /*
-            Find negative coefficient
-            in objective row.
-        */
 
         int entering =
             -1;
@@ -524,21 +431,10 @@ SolveStatus simplex_iterations(
             }
         }
 
-        /*
-            No negative coefficient:
-            optimal.
-        */
-
-        if (
-            entering == -1
-        ) {
+        if (entering == -1) {
 
             return SolveStatus::Optimal;
         }
-
-        /*
-            Ratio test.
-        */
 
         int leaving =
             -1;
@@ -552,27 +448,23 @@ SolveStatus simplex_iterations(
             ++i
         ) {
 
-            double coefficient =
+            const double coefficient =
                 tab.a[i][entering];
 
             if (
                 coefficient <= EPS
             ) {
-
                 continue;
             }
 
-            double rhs =
+            const double rhs =
                 tab.a[i][tab.columns];
 
-            double ratio =
+            const double ratio =
                 rhs /
                 coefficient;
 
-            if (
-                ratio < -EPS
-            ) {
-
+            if (ratio < -EPS) {
                 continue;
             }
 
@@ -589,14 +481,7 @@ SolveStatus simplex_iterations(
             }
         }
 
-        /*
-            No leaving variable:
-            unbounded.
-        */
-
-        if (
-            leaving == -1
-        ) {
+        if (leaving == -1) {
 
             return SolveStatus::Unbounded;
         }
@@ -615,9 +500,9 @@ SolveStatus simplex_iterations(
 
 
 /*
-    ------------------------------------------------------------
-    Extract original variables
-    ------------------------------------------------------------
+    ============================================================
+    Extract solution
+    ============================================================
 */
 
 std::vector<double> extract_values(
@@ -636,7 +521,7 @@ std::vector<double> extract_values(
         ++i
     ) {
 
-        int basic =
+        const int basic =
             tab.basis[i];
 
         if (
@@ -650,9 +535,7 @@ std::vector<double> extract_values(
             if (
                 std::abs(value) <= EPS
             ) {
-
-                value =
-                    0.0;
+                value = 0.0;
             }
 
             values[basic] =
@@ -665,9 +548,9 @@ std::vector<double> extract_values(
 
 
 /*
-    ------------------------------------------------------------
-    Detect artificial variables
-    ------------------------------------------------------------
+    ============================================================
+    Artificial variables
+    ============================================================
 */
 
 std::vector<bool> find_artificial_columns(
@@ -679,19 +562,8 @@ std::vector<bool> find_artificial_columns(
             problem.variables().size()
         );
 
-    const int m =
-        static_cast<int>(
-            problem.constraints().size()
-        );
-
     int extra =
         0;
-
-    std::vector<bool> artificial;
-
-    /*
-        First calculate total columns.
-    */
 
     for (
         const auto& constraint :
@@ -704,21 +576,21 @@ std::vector<bool> find_artificial_columns(
         ) {
 
             extra += 1;
-        }
-        else if (
+
+        } else if (
             constraint.sense ==
             ConstraintSense::GreaterEqual
         ) {
 
             extra += 2;
-        }
-        else {
+
+        } else {
 
             extra += 1;
         }
     }
 
-    artificial.assign(
+    std::vector<bool> artificial(
         n + extra,
         false
     );
@@ -727,13 +599,9 @@ std::vector<bool> find_artificial_columns(
         n;
 
     for (
-        int i = 0;
-        i < m;
-        ++i
+        const auto& constraint :
+        problem.constraints()
     ) {
-
-        const auto& constraint =
-            problem.constraints()[i];
 
         if (
             constraint.sense ==
@@ -741,8 +609,8 @@ std::vector<bool> find_artificial_columns(
         ) {
 
             next += 1;
-        }
-        else if (
+
+        } else if (
             constraint.sense ==
             ConstraintSense::GreaterEqual
         ) {
@@ -753,8 +621,8 @@ std::vector<bool> find_artificial_columns(
                 true;
 
             next += 1;
-        }
-        else {
+
+        } else {
 
             artificial[next] =
                 true;
@@ -768,9 +636,9 @@ std::vector<bool> find_artificial_columns(
 
 
 /*
-    ------------------------------------------------------------
-    Remove artificial columns
-    ------------------------------------------------------------
+    ============================================================
+    Remove artificial variables
+    ============================================================
 */
 
 bool remove_artificial_columns(
@@ -782,18 +650,13 @@ bool remove_artificial_columns(
     const int old_columns =
         tab.columns;
 
-    /*
-        Try to pivot artificial basic
-        variables out of the basis.
-    */
-
     for (
         int i = 0;
         i < tab.rows;
         ++i
     ) {
 
-        int basic =
+        const int basic =
             tab.basis[i];
 
         if (
@@ -801,14 +664,8 @@ bool remove_artificial_columns(
             basic >= old_columns ||
             !artificial[basic]
         ) {
-
             continue;
         }
-
-        /*
-            Artificial variable should
-            be zero after Phase I.
-        */
 
         if (
             std::abs(
@@ -832,10 +689,7 @@ bool remove_artificial_columns(
             ++j
         ) {
 
-            if (
-                artificial[j]
-            ) {
-
+            if (artificial[j]) {
                 continue;
             }
 
@@ -852,9 +706,7 @@ bool remove_artificial_columns(
             }
         }
 
-        if (
-            entering != -1
-        ) {
+        if (entering != -1) {
 
             pivot(
                 tab,
@@ -863,10 +715,6 @@ bool remove_artificial_columns(
             );
         }
     }
-
-    /*
-        Create column map.
-    */
 
     std::vector<int> map(
         old_columns,
@@ -882,20 +730,12 @@ bool remove_artificial_columns(
         ++j
     ) {
 
-        if (
-            !artificial[j]
-        ) {
+        if (!artificial[j]) {
 
             map[j] =
                 new_columns++;
         }
     }
-
-    /*
-        Remove redundant rows if
-        artificial variable remains basic
-        at zero.
-    */
 
     std::vector<int> kept_rows;
 
@@ -905,7 +745,7 @@ bool remove_artificial_columns(
         ++i
     ) {
 
-        int basic =
+        const int basic =
             tab.basis[i];
 
         if (
@@ -923,10 +763,7 @@ bool remove_artificial_columns(
                 ++j
             ) {
 
-                if (
-                    artificial[j]
-                ) {
-
+                if (artificial[j]) {
                     continue;
                 }
 
@@ -943,9 +780,7 @@ bool remove_artificial_columns(
                 }
             }
 
-            if (
-                !nonzero
-            ) {
+            if (!nonzero) {
 
                 if (
                     std::abs(
@@ -971,10 +806,6 @@ bool remove_artificial_columns(
         kept_rows.push_back(i);
     }
 
-    /*
-        Build cleaned tableau.
-    */
-
     std::vector<std::vector<double>> new_data(
         kept_rows.size() + 1,
         std::vector<double>(
@@ -991,7 +822,7 @@ bool remove_artificial_columns(
         ++new_row
     ) {
 
-        int old_row =
+        const int old_row =
             kept_rows[new_row];
 
         for (
@@ -1000,12 +831,10 @@ bool remove_artificial_columns(
             ++old_column
         ) {
 
-            int mapped =
+            const int mapped =
                 map[old_column];
 
-            if (
-                mapped >= 0
-            ) {
+            if (mapped >= 0) {
 
                 new_data[new_row][mapped] =
                     tab.a[old_row][old_column];
@@ -1015,7 +844,7 @@ bool remove_artificial_columns(
         new_data[new_row][new_columns] =
             tab.a[old_row][old_columns];
 
-        int old_basic =
+        const int old_basic =
             tab.basis[old_row];
 
         if (
@@ -1052,6 +881,233 @@ bool remove_artificial_columns(
     return true;
 }
 
+
+/*
+    ============================================================
+    Warm-start helpers
+    ============================================================
+*/
+
+bool basis_is_valid(
+    const SimplexTableau& tab,
+    const std::vector<int>& basis
+)
+{
+    if (
+        static_cast<int>(
+            basis.size()
+        ) != tab.rows
+    ) {
+        return false;
+    }
+
+    std::vector<bool> used(
+        tab.columns,
+        false
+    );
+
+    for (const int variable :
+         basis)
+    {
+        if (
+            variable < 0 ||
+            variable >= tab.columns
+        ) {
+            return false;
+        }
+
+        if (used[variable]) {
+            return false;
+        }
+
+        used[variable] =
+            true;
+    }
+
+    return true;
+}
+
+
+/*
+    Restore a previously saved basis.
+
+    The current tableau starts with its default
+    slack/artificial basis. We pivot until the
+    requested basis is reproduced.
+*/
+
+bool restore_basis(
+    SimplexTableau& tab,
+    const std::vector<int>& desired_basis
+)
+{
+    if (
+        !basis_is_valid(
+            tab,
+            desired_basis
+        )
+    ) {
+        return false;
+    }
+
+    for (
+        int row = 0;
+        row < tab.rows;
+        ++row
+    ) {
+
+        if (
+            tab.basis[row] ==
+            desired_basis[row]
+        ) {
+            continue;
+        }
+
+        int target_column =
+            desired_basis[row];
+
+        int pivot_row =
+            -1;
+
+        for (
+            int candidate = row;
+            candidate < tab.rows;
+            ++candidate
+        ) {
+
+            if (
+                std::abs(
+                    tab.a[candidate][target_column]
+                ) > EPS
+            ) {
+
+                bool already_basic =
+                    false;
+
+                for (
+                    int r = 0;
+                    r < row;
+                    ++r
+                ) {
+
+                    if (
+                        tab.basis[r] ==
+                        target_column
+                    ) {
+
+                        already_basic =
+                            true;
+
+                        break;
+                    }
+                }
+
+                if (!already_basic) {
+
+                    pivot_row =
+                        candidate;
+
+                    break;
+                }
+            }
+        }
+
+        if (pivot_row == -1) {
+            return false;
+        }
+
+        if (pivot_row != row) {
+
+            std::swap(
+                tab.a[pivot_row],
+                tab.a[row]
+            );
+
+            std::swap(
+                tab.basis[pivot_row],
+                tab.basis[row]
+            );
+        }
+
+        pivot(
+            tab,
+            row,
+            target_column
+        );
+    }
+
+    for (
+        int i = 0;
+        i < tab.rows;
+        ++i
+    ) {
+
+        if (
+            tab.basis[i] !=
+            desired_basis[i]
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool is_primal_feasible(
+    const SimplexTableau& tab
+)
+{
+    for (
+        int i = 0;
+        i < tab.rows;
+        ++i
+    ) {
+
+        if (
+            tab.a[i][tab.columns]
+            < -EPS
+        ) {
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+void capture_warm_start(
+    const Problem& problem,
+    const SimplexTableau& tab,
+    const std::vector<double>& values,
+    WarmStart& warm_start
+)
+{
+    warm_start.available =
+        true;
+
+    warm_start.variable_values =
+        values;
+
+    warm_start.basis =
+        tab.basis;
+
+    warm_start.rows =
+        tab.rows;
+
+    warm_start.columns =
+        tab.columns;
+
+    warm_start.structural_signature =
+        structural_signature_for_problem(
+            problem
+        );
+
+    warm_start.source =
+        "simplex";
+}
+
 } // namespace
 
 
@@ -1068,6 +1124,33 @@ SimplexSolver::SimplexSolver(
     : tolerance_(tolerance),
       max_iterations_(max_iterations)
 {
+}
+
+
+/*
+    ============================================================
+    Warm-start API
+    ============================================================
+*/
+
+void SimplexSolver::set_warm_start(
+    const WarmStart& warm_start
+)
+{
+    warm_start_ =
+        warm_start;
+}
+
+
+void SimplexSolver::clear_warm_start()
+{
+    warm_start_.clear();
+}
+
+
+bool SimplexSolver::has_warm_start() const
+{
+    return warm_start_.available;
 }
 
 
@@ -1098,12 +1181,6 @@ SolveResult SimplexSolver::solve(
             return result;
         }
 
-        /*
-            ----------------------------------------------------
-            Build tableau
-            ----------------------------------------------------
-        */
-
         SimplexTableau tab =
             build_tableau(
                 problem
@@ -1125,40 +1202,90 @@ SolveResult SimplexSolver::solve(
         bool has_artificial =
             false;
 
-        for (
-            bool value :
-            artificial
-        ) {
-
+        for (bool value :
+             artificial)
+        {
             if (value) {
-
-                has_artificial =
-                    true;
-
+                has_artificial = true;
                 break;
             }
         }
 
+
         /*
-            ====================================================
-            PHASE I
-            ====================================================
+            ----------------------------------------------------
+            Warm-start attempt
+            ----------------------------------------------------
         */
 
+        bool warm_started =
+            false;
+
         if (
-            has_artificial
+            warm_start_.available &&
+            warm_start_.matches_problem(
+                problem
+            ) &&
+            warm_start_.rows ==
+                tab.rows
         ) {
+
+            /*
+                Warm-start basis indices correspond
+                directly only when the generated
+                tableau has the same column layout.
+            */
+
+            if (
+                warm_start_.columns ==
+                tab.columns &&
+                basis_is_valid(
+                    tab,
+                    warm_start_.basis
+                )
+            ) {
+
+                if (
+                    restore_basis(
+                        tab,
+                        warm_start_.basis
+                    )
+                ) {
+
+                    /*
+                        If the restored basis is
+                        primal feasible, we can perform
+                        normal primal reoptimization.
+                    */
+
+                    if (
+                        is_primal_feasible(
+                            tab
+                        )
+                    ) {
+
+                        warm_started =
+                            true;
+                    }
+                }
+            }
+        }
+
+
+        /*
+            ----------------------------------------------------
+            Cold Phase I
+            ----------------------------------------------------
+        */
+
+        if (!warm_started &&
+            has_artificial)
+        {
 
             std::vector<double> phase1_c(
                 tab.columns,
                 0.0
             );
-
-            /*
-                Maximize:
-
-                    -sum(artificial)
-            */
 
             for (
                 int j = 0;
@@ -1166,9 +1293,7 @@ SolveResult SimplexSolver::solve(
                 ++j
             ) {
 
-                if (
-                    artificial[j]
-                ) {
+                if (artificial[j]) {
 
                     phase1_c[j] =
                         -1.0;
@@ -1180,21 +1305,21 @@ SolveResult SimplexSolver::solve(
                 phase1_c
             );
 
-            int iterations =
+            int phase1_iterations =
                 0;
 
-            SolveStatus status =
+            SolveStatus phase1_status =
                 simplex_iterations(
                     tab,
                     max_iterations_,
-                    iterations
+                    phase1_iterations
                 );
 
             total_iterations +=
-                iterations;
+                phase1_iterations;
 
             if (
-                status ==
+                phase1_status ==
                 SolveStatus::IterationLimit
             ) {
 
@@ -1211,7 +1336,7 @@ SolveResult SimplexSolver::solve(
             }
 
             if (
-                status ==
+                phase1_status ==
                 SolveStatus::Unbounded
             ) {
 
@@ -1227,11 +1352,7 @@ SolveResult SimplexSolver::solve(
                 return result;
             }
 
-            /*
-                Phase I objective must be zero.
-            */
-
-            double phase1_objective =
+            const double phase1_objective =
                 tab.a[
                     tab.rows
                 ][
@@ -1254,10 +1375,6 @@ SolveResult SimplexSolver::solve(
 
                 return result;
             }
-
-            /*
-                Remove artificial variables.
-            */
 
             std::string cleanup_error;
 
@@ -1282,10 +1399,11 @@ SolveResult SimplexSolver::solve(
             }
         }
 
+
         /*
-            ====================================================
-            PHASE II
-            ====================================================
+            ----------------------------------------------------
+            Phase II objective
+            ----------------------------------------------------
         */
 
         std::vector<double> objective(
@@ -1320,7 +1438,14 @@ SolveResult SimplexSolver::solve(
             objective
         );
 
-        int remaining_iterations =
+
+        /*
+            ----------------------------------------------------
+            Phase II
+            ----------------------------------------------------
+        */
+
+        const int remaining_iterations =
             std::max(
                 1,
                 max_iterations_ -
@@ -1346,19 +1471,11 @@ SolveResult SimplexSolver::solve(
         result.iterations =
             total_iterations;
 
-        /*
-            Extract variables.
-        */
-
         result.variable_values =
             extract_values(
                 tab,
                 original_variables
             );
-
-        /*
-            Internal simplex objective.
-        */
 
         double internal_objective =
             tab.a[
@@ -1374,30 +1491,66 @@ SolveResult SimplexSolver::solve(
 
             result.objective_value =
                 -internal_objective;
-        }
-        else {
+
+        } else {
 
             result.objective_value =
                 internal_objective;
         }
+
+
+        /*
+            ----------------------------------------------------
+            Warm-start result
+            ----------------------------------------------------
+        */
+
+        result.warm_start_used =
+            warm_started;
+
+        result.warm_start_iterations =
+            warm_started
+                ? phase2_iterations
+                : 0;
+
+
+        /*
+            Save the basis after every optimal solve.
+        */
 
         if (
             phase2_status ==
             SolveStatus::Optimal
         ) {
 
-            result.message =
-                "Optimal solution found.";
-        }
-        else if (
+            capture_warm_start(
+                problem,
+                tab,
+                result.variable_values,
+                warm_start_
+            );
+
+            if (warm_started) {
+
+                result.message =
+                    "Optimal solution found using "
+                    "Simplex warm-start reoptimization.";
+
+            } else {
+
+                result.message =
+                    "Optimal solution found.";
+            }
+
+        } else if (
             phase2_status ==
             SolveStatus::Unbounded
         ) {
 
             result.message =
                 "LP is unbounded.";
-        }
-        else if (
+
+        } else if (
             phase2_status ==
             SolveStatus::IterationLimit
         ) {

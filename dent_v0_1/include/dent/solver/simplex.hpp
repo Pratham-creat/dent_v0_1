@@ -1,33 +1,14 @@
 #pragma once
 
 #include "dent/model/problem.hpp"
+#include "dent/solver/solver.hpp"
 
 #include <string>
 #include <vector>
 
 namespace dent {
 
-enum class SolveStatus {
-    Optimal,
-    Infeasible,
-    Unbounded,
-    IterationLimit,
-    Unsupported
-};
-
-struct SolveResult {
-    SolveStatus status = SolveStatus::Unsupported;
-
-    double objective_value = 0.0;
-
-    std::vector<double> variable_values;
-
-    int iterations = 0;
-
-    std::string message;
-};
-
-class SimplexSolver {
+class SimplexSolver final : public Solver {
 public:
     explicit SimplexSolver(
         double tolerance = 1e-9,
@@ -36,11 +17,22 @@ public:
 
     SolveResult solve(
         const Problem& problem
-    ) const;
+    ) const override;
+
+    void set_warm_start(
+        const WarmStart& warm_start
+    ) override;
+
+    void clear_warm_start() override;
+
+    bool has_warm_start() const override;
 
 private:
     double tolerance_;
+
     int max_iterations_;
+
+    mutable WarmStart warm_start_;
 };
 
 } // namespace dent

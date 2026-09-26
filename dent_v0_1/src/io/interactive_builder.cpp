@@ -1,10 +1,11 @@
 #include "dent/io/interactive_builder.hpp"
 
+#include <cmath>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <cmath>
 
 namespace dent {
 
@@ -26,7 +27,7 @@ int read_choice(
     int maximum
 )
 {
-    int value;
+    int value = 0;
 
     while (true) {
 
@@ -37,7 +38,14 @@ int read_choice(
             value <= maximum) {
 
             clear_input();
+
             return value;
+        }
+
+        if (std::cin.eof()) {
+            throw std::runtime_error(
+                "Input stream closed while reading a menu choice."
+            );
         }
 
         std::cout
@@ -55,7 +63,7 @@ int read_non_negative_int(
     const std::string& prompt
 )
 {
-    int value;
+    int value = 0;
 
     while (true) {
 
@@ -65,7 +73,14 @@ int read_non_negative_int(
             value >= 0) {
 
             clear_input();
+
             return value;
+        }
+
+        if (std::cin.eof()) {
+            throw std::runtime_error(
+                "Input stream closed while reading a number."
+            );
         }
 
         std::cout
@@ -80,7 +95,7 @@ double read_double(
     const std::string& prompt
 )
 {
-    double value;
+    double value = 0.0;
 
     while (true) {
 
@@ -89,7 +104,14 @@ double read_double(
         if (std::cin >> value) {
 
             clear_input();
+
             return value;
+        }
+
+        if (std::cin.eof()) {
+            throw std::runtime_error(
+                "Input stream closed while reading a number."
+            );
         }
 
         std::cout
@@ -97,6 +119,29 @@ double read_double(
 
         clear_input();
     }
+}
+
+std::string trim(
+    const std::string& value
+)
+{
+    const std::string whitespace =
+        " \t\r\n";
+
+    const std::size_t first =
+        value.find_first_not_of(whitespace);
+
+    if (first == std::string::npos) {
+        return {};
+    }
+
+    const std::size_t last =
+        value.find_last_not_of(whitespace);
+
+    return value.substr(
+        first,
+        last - first + 1
+    );
 }
 
 std::string read_text(
@@ -109,10 +154,14 @@ std::string read_text(
 
         std::cout << prompt;
 
-        std::getline(
-            std::cin,
-            value
-        );
+        if (!std::getline(std::cin, value)) {
+
+            throw std::runtime_error(
+                "Input stream closed while reading text."
+            );
+        }
+
+        value = trim(value);
 
         if (!value.empty()) {
             return value;
@@ -193,22 +242,8 @@ ConstraintSense read_constraint_sense()
 
 } // anonymous namespace
 
-
 Problem InteractiveBuilder::build()
 {
-    std::cout
-        << "\n========================================\n"
-        << "       DENT OPTIMIZATION ENGINE\n"
-        << "========================================\n";
-
-    std::cout
-        << "\nDENT converts real-world planning problems\n"
-        << "into optimization models automatically.\n"
-        << "\n"
-        << "You do NOT need to write equations.\n"
-        << "Simply provide your business information.\n";
-
-
     // =====================================================
     // Problem name
     // =====================================================
@@ -217,7 +252,6 @@ Problem InteractiveBuilder::build()
         read_text(
             "\nWhat should we call this problem? "
         );
-
 
     // =====================================================
     // Objective
@@ -252,7 +286,6 @@ Problem InteractiveBuilder::build()
     }
 
     Problem problem(objective_sense);
-
 
     // =====================================================
     // Decisions / Products
@@ -315,7 +348,6 @@ Problem InteractiveBuilder::build()
         variable_indices.push_back(index);
     }
 
-
     // =====================================================
     // Profit / Cost
     // =====================================================
@@ -354,7 +386,6 @@ Problem InteractiveBuilder::build()
             coefficient
         );
     }
-
 
     // =====================================================
     // Nonlinear / changing contribution
@@ -467,7 +498,6 @@ Problem InteractiveBuilder::build()
         }
     }
 
-
     // =====================================================
     // Resources / Requirements
     // =====================================================
@@ -548,7 +578,6 @@ Problem InteractiveBuilder::build()
         }
     }
 
-
     // =====================================================
     // Decision rules
     // =====================================================
@@ -561,8 +590,7 @@ Problem InteractiveBuilder::build()
     std::cout
         << "\nTell DENT how each decision works.\n";
 
-    bool has_integer =
-        false;
+    bool has_integer = false;
 
     for (int i = 0;
          i < variable_count;
@@ -629,13 +657,11 @@ Problem InteractiveBuilder::build()
         }
     }
 
-
     // =====================================================
     // Detect mathematical problem class
     // =====================================================
 
-    bool has_quadratic_terms =
-        false;
+    bool has_quadratic_terms = false;
 
     const auto& Q =
         problem.quadratic_matrix();
@@ -648,9 +674,7 @@ Problem InteractiveBuilder::build()
              j < Q[i].size();
              ++j) {
 
-            if (
-                std::abs(Q[i][j]) > 1e-12
-            ) {
+            if (std::abs(Q[i][j]) > 1e-12) {
 
                 has_quadratic_terms = true;
                 break;
@@ -662,10 +686,14 @@ Problem InteractiveBuilder::build()
         }
     }
 
-
     std::string detected_type;
 
-    if (has_quadratic_terms) {
+    if (has_quadratic_terms && has_integer) {
+
+        detected_type =
+            "Mixed Integer Quadratic Programming (MIQP)";
+    }
+    else if (has_quadratic_terms) {
 
         detected_type =
             "Quadratic Programming (QP)";
@@ -680,7 +708,6 @@ Problem InteractiveBuilder::build()
         detected_type =
             "Linear Programming (LP)";
     }
-
 
     // =====================================================
     // Human-readable confirmation

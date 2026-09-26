@@ -11,6 +11,15 @@
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<BuildDependency Project="dent.vcxproj"/>
 		<BuildDependency Project="dent_core.vcxproj"/>
+		<BuildDependency Project="dent_interior_point_test.vcxproj"/>
+		<BuildDependency Project="dent_solver_industry_test.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="RUN_TESTS.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="71be544e-9d22-3cc0-8871-b3c6bbfc88e6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<Build Solution="Debug|*" Project="false"/>
 		<Build Solution="Release|*" Project="false"/>
 		<Build Solution="MinSizeRel|*" Project="false"/>
@@ -23,5 +32,13 @@
 	</Project>
 	<Project Path="dent_core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a2481f28-c2bd-302d-991f-0ea9d7002e6b">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="dent_interior_point_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3adcc910-9105-3a8b-8569-72cc3be98754">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="dent_core.vcxproj"/>
+	</Project>
+	<Project Path="dent_solver_industry_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2033baaa-0bdf-3c8d-92d0-ca824886254e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="dent_core.vcxproj"/>
 	</Project>
 </Solution>

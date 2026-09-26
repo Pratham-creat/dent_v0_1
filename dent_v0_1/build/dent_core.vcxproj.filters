@@ -7,13 +7,37 @@
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\matrix\sparse_matrix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\presolve.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\scaling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\fingerprint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\dispatcher.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\dual_simplex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\qp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\solver_session.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\warmstart\warm_start.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\io\model_parser.cpp">

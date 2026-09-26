@@ -1,7 +1,15 @@
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\model\problem.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\problem.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\matrix\sparse_matrix.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\sparse_matrix.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\presolve.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\presolve.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\presolve\scaling.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\scaling.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\fingerprint.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\fingerprint.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\dispatch\dispatcher.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\dispatcher.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\simplex.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\dual_simplex.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\dual_simplex.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\interior_point.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\interior_point.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\milp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\milp.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\qp.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\qp.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\solver\solver_session.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\solver_session.obj
+C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\warmstart\warm_start.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\warm_start.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\io\model_parser.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\model_parser.obj
 C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\src\io\interactive_builder.cpp;C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_core.dir\Release\interactive_builder.obj
