@@ -21,7 +21,9 @@ std::string trim(const std::string& value)
     while (
         start < value.size() &&
         std::isspace(
-            static_cast<unsigned char>(value[start])
+            static_cast<unsigned char>(
+                value[start]
+            )
         )
     )
     {
@@ -33,14 +35,19 @@ std::string trim(const std::string& value)
     while (
         end > start &&
         std::isspace(
-            static_cast<unsigned char>(value[end - 1])
+            static_cast<unsigned char>(
+                value[end - 1]
+            )
         )
     )
     {
         --end;
     }
 
-    return value.substr(start, end - start);
+    return value.substr(
+        start,
+        end - start
+    );
 }
 
 
@@ -77,7 +84,10 @@ double parse_double(
                 &consumed
             );
 
-        if (consumed != value.size())
+        if (
+            consumed !=
+            value.size()
+        )
         {
             throw std::runtime_error("");
         }
@@ -97,30 +107,272 @@ double parse_double(
 }
 
 
+bool is_number_start(
+    const std::string& expression,
+    std::size_t position
+)
+{
+    if (
+        position >=
+        expression.size()
+    )
+    {
+        return false;
+    }
+
+    const char character =
+        expression[position];
+
+    if (
+        std::isdigit(
+            static_cast<unsigned char>(
+                character
+            )
+        )
+    )
+    {
+        return true;
+    }
+
+    return character == '.';
+}
+
+
+std::string parse_variable_name(
+    const std::string& expression,
+    std::size_t& position
+)
+{
+    const std::size_t start =
+        position;
+
+    while (
+        position <
+        expression.size()
+    )
+    {
+        const char character =
+            expression[position];
+
+        if (
+            std::isalnum(
+                static_cast<unsigned char>(
+                    character
+                )
+            ) ||
+            character == '_' ||
+            character == '.'
+        )
+        {
+            ++position;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (
+        position ==
+        start
+    )
+    {
+        throw std::runtime_error(
+            "Expected a variable name."
+        );
+    }
+
+    return expression.substr(
+        start,
+        position - start
+    );
+}
+
+
+double parse_coefficient(
+    const std::string& expression,
+    std::size_t& position,
+    bool& explicitly_present
+)
+{
+    explicitly_present = false;
+
+    if (
+        position >=
+        expression.size() ||
+        !is_number_start(
+            expression,
+            position
+        )
+    )
+    {
+        return 1.0;
+    }
+
+    const std::size_t start =
+        position;
+
+    bool has_digits = false;
+
+    while (
+        position <
+        expression.size() &&
+        std::isdigit(
+            static_cast<unsigned char>(
+                expression[position]
+            )
+        )
+    )
+    {
+        has_digits = true;
+
+        ++position;
+    }
+
+    if (
+        position <
+        expression.size() &&
+        expression[position] == '.'
+    )
+    {
+        ++position;
+
+        while (
+            position <
+            expression.size() &&
+            std::isdigit(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
+        )
+        {
+            has_digits = true;
+
+            ++position;
+        }
+    }
+
+    if (!has_digits)
+    {
+        position = start;
+
+        return 1.0;
+    }
+
+    /*
+        Scientific notation:
+
+            1e3
+            2.5e-4
+            3E+2
+    */
+
+    if (
+        position <
+        expression.size() &&
+        (
+            expression[position] == 'e' ||
+            expression[position] == 'E'
+        )
+    )
+    {
+        const std::size_t
+            exponent_start =
+                position;
+
+        ++position;
+
+        if (
+            position <
+            expression.size() &&
+            (
+                expression[position] == '+' ||
+                expression[position] == '-'
+            )
+        )
+        {
+            ++position;
+        }
+
+        const std::size_t
+            exponent_digits =
+                position;
+
+        while (
+            position <
+            expression.size() &&
+            std::isdigit(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
+        )
+        {
+            ++position;
+        }
+
+        if (
+            position ==
+            exponent_digits
+        )
+        {
+            position =
+                exponent_start;
+        }
+    }
+
+    const std::string number =
+        expression.substr(
+            start,
+            position - start
+        );
+
+    explicitly_present = true;
+
+    return parse_double(
+        number,
+        "linear expression"
+    );
+}
+
+
 /*
-    Converts:
+    Parse a linear expression.
 
-        40 ProductA + 30 ProductB
+    Supported forms:
 
-    into:
+        x
+        -x
+        +x
 
-        (ProductA, 40)
-        (ProductB, 30)
+        2x
+        -2x
+        2*x
+        -2*x
 
-    It also supports:
+        2 x
+        -2 x
 
-        ProductA
-        -ProductA
-        2 ProductA
-        -2 ProductA
-        2*ProductA
-        2 ProductA + 3 ProductB
+        2.5x
+        1e3x
+        2.5e-3x
+
+        x + y
+        x - y
+        2x + 3y
+        2*x - 3*y
+
+    The function deliberately does NOT combine duplicate
+    terms here. That is handled later by the model-building
+    stage so the parser preserves every term exactly as it
+    appeared in the source model.
 */
 std::vector<
     std::pair<std::string, double>
 >
 parse_linear_expression(
-    std::string expression,
+    const std::string& input,
     const std::string& context
 )
 {
@@ -128,9 +380,12 @@ parse_linear_expression(
         std::pair<std::string, double>
     > terms;
 
-    expression = trim(expression);
+    const std::string expression =
+        trim(input);
 
-    if (expression.empty())
+    if (
+        expression.empty()
+    )
     {
         throw std::runtime_error(
             "Empty expression in " +
@@ -139,168 +394,243 @@ parse_linear_expression(
         );
     }
 
-    // Normalize multiplication.
-    std::replace(
-        expression.begin(),
-        expression.end(),
-        '*',
-        ' '
-    );
+    std::size_t position = 0;
 
-    /*
-        Put spaces around + and - so that:
-
-            2 ProductA + 3 ProductB
-
-        becomes:
-
-            2 ProductA  +  3 ProductB
-    */
-    std::string normalized;
-
-    for (std::size_t i = 0; i < expression.size(); ++i)
+    while (
+        position <
+        expression.size()
+    )
     {
-        const char character = expression[i];
+        /*
+            Skip whitespace.
+        */
 
-        if (
-            character == '+' ||
-            character == '-'
+        while (
+            position <
+            expression.size() &&
+            std::isspace(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
         )
         {
-            /*
-                A minus sign at the beginning of a term
-                is handled as a sign.
-            */
-            normalized += ' ';
-            normalized += character;
-            normalized += ' ';
-        }
-        else
-        {
-            normalized += character;
-        }
-    }
-
-    std::istringstream stream(normalized);
-
-    std::vector<std::string> tokens;
-
-    std::string token;
-
-    while (stream >> token)
-    {
-        tokens.push_back(token);
-    }
-
-    if (tokens.empty())
-    {
-        throw std::runtime_error(
-            "Could not parse expression in " +
-            context +
-            "."
-        );
-    }
-
-    double sign = 1.0;
-
-    std::size_t index = 0;
-
-    while (index < tokens.size())
-    {
-        if (tokens[index] == "+")
-        {
-            sign = 1.0;
-            ++index;
-            continue;
-        }
-
-        if (tokens[index] == "-")
-        {
-            sign = -1.0;
-            ++index;
-            continue;
-        }
-
-        double coefficient = 1.0;
-
-        std::string variable;
-
-        /*
-            Form:
-
-                40 ProductA
-
-            or:
-
-                ProductA
-        */
-        try
-        {
-            std::size_t consumed = 0;
-
-            const double possible_coefficient =
-                std::stod(
-                    tokens[index],
-                    &consumed
-                );
-
-            if (
-                consumed == tokens[index].size()
-            )
-            {
-                coefficient =
-                    possible_coefficient;
-
-                ++index;
-
-                if (index >= tokens.size())
-                {
-                    throw std::runtime_error(
-                        "Missing variable after coefficient in " +
-                        context +
-                        "."
-                    );
-                }
-
-                variable =
-                    tokens[index];
-
-                ++index;
-            }
-            else
-            {
-                variable =
-                    tokens[index];
-
-                ++index;
-            }
-        }
-        catch (const std::invalid_argument&)
-        {
-            variable =
-                tokens[index];
-
-            ++index;
+            ++position;
         }
 
         if (
-            variable == "+" ||
-            variable == "-"
+            position >=
+            expression.size()
+        )
+        {
+            break;
+        }
+
+        /*
+            Read term sign.
+        */
+
+        double sign = 1.0;
+
+        if (
+            expression[position] ==
+            '+'
+        )
+        {
+            ++position;
+        }
+        else if (
+            expression[position] ==
+            '-'
+        )
+        {
+            sign = -1.0;
+
+            ++position;
+        }
+
+        /*
+            Skip whitespace after sign.
+        */
+
+        while (
+            position <
+            expression.size() &&
+            std::isspace(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
+        )
+        {
+            ++position;
+        }
+
+        if (
+            position >=
+            expression.size()
         )
         {
             throw std::runtime_error(
-                "Invalid variable in " +
+                "Expression in " +
                 context +
-                "."
+                " ends after a sign."
             );
         }
+
+        /*
+            Parse optional coefficient.
+        */
+
+        bool coefficient_present =
+            false;
+
+        double coefficient =
+            parse_coefficient(
+                expression,
+                position,
+                coefficient_present
+            );
+
+        /*
+            Skip whitespace between coefficient
+            and multiplication / variable.
+        */
+
+        while (
+            position <
+            expression.size() &&
+            std::isspace(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
+        )
+        {
+            ++position;
+        }
+
+        /*
+            Optional multiplication symbol.
+        */
+
+        if (
+            position <
+            expression.size() &&
+            expression[position] ==
+            '*'
+        )
+        {
+            ++position;
+
+            while (
+                position <
+                expression.size() &&
+                std::isspace(
+                    static_cast<unsigned char>(
+                        expression[position]
+                    )
+                )
+            )
+            {
+                ++position;
+            }
+        }
+
+        /*
+            A variable must begin with a letter
+            or underscore.
+        */
+
+        if (
+            position >=
+            expression.size() ||
+            !(
+                std::isalpha(
+                    static_cast<unsigned char>(
+                        expression[position]
+                    )
+                ) ||
+                expression[position] == '_'
+            )
+        )
+        {
+            throw std::runtime_error(
+                "Expected variable name in " +
+                context +
+                " near '" +
+                expression.substr(
+                    position
+                ) +
+                "'."
+            );
+        }
+
+        const std::string variable =
+            parse_variable_name(
+                expression,
+                position
+            );
 
         terms.emplace_back(
             variable,
             sign * coefficient
         );
 
-        sign = 1.0;
+        /*
+            Skip whitespace before next term.
+        */
+
+        while (
+            position <
+            expression.size() &&
+            std::isspace(
+                static_cast<unsigned char>(
+                    expression[position]
+                )
+            )
+        )
+        {
+            ++position;
+        }
+
+        /*
+            Only +, -, or end-of-expression
+            may follow a variable.
+        */
+
+        if (
+            position <
+            expression.size()
+        )
+        {
+            if (
+                expression[position] != '+' &&
+                expression[position] != '-'
+            )
+            {
+                throw std::runtime_error(
+                    "Unexpected token in " +
+                    context +
+                    " near '" +
+                    expression.substr(
+                        position
+                    ) +
+                    "'."
+                );
+            }
+        }
+    }
+
+    if (
+        terms.empty()
+    )
+    {
+        throw std::runtime_error(
+            "Could not parse expression in " +
+            context +
+            "."
+        );
     }
 
     return terms;
@@ -311,12 +641,16 @@ ConstraintSense parse_constraint_sense(
     const std::string& sense
 )
 {
-    if (sense == "<=")
+    if (
+        sense == "<="
+    )
     {
         return ConstraintSense::LessEqual;
     }
 
-    if (sense == ">=")
+    if (
+        sense == ">="
+    )
     {
         return ConstraintSense::GreaterEqual;
     }
@@ -344,9 +678,13 @@ Problem ModelParser::parse_file(
     const std::string& filename
 )
 {
-    std::ifstream input(filename);
+    std::ifstream input(
+        filename
+    );
 
-    if (!input.is_open())
+    if (
+        !input.is_open()
+    )
     {
         throw std::runtime_error(
             "Could not open .dent file: " +
@@ -374,9 +712,6 @@ Problem ModelParser::parse_file(
         Section::None;
 
 
-    std::string problem_name;
-
-
     struct VariableInfo
     {
         std::string name;
@@ -384,15 +719,6 @@ Problem ModelParser::parse_file(
         VariableType type =
             VariableType::Continuous;
     };
-
-
-    std::vector<VariableInfo>
-        variables;
-
-
-    std::vector<
-        std::pair<std::string, double>
-    > objective_terms;
 
 
     struct ConstraintInfo
@@ -408,6 +734,16 @@ Problem ModelParser::parse_file(
     };
 
 
+    std::vector<VariableInfo>
+        variables;
+
+
+    std::vector<
+        std::pair<std::string, double>
+    >
+        objective_terms;
+
+
     std::vector<ConstraintInfo>
         constraint_data;
 
@@ -417,31 +753,53 @@ Problem ModelParser::parse_file(
     int line_number = 0;
 
 
-    while (std::getline(input, line))
+    /*
+        ======================================================
+        READ FILE
+        ======================================================
+    */
+
+    while (
+        std::getline(
+            input,
+            line
+        )
+    )
     {
         ++line_number;
 
 
-        // Remove comments.
+        /*
+            --------------------------------------------------
+            REMOVE COMMENTS
+            --------------------------------------------------
+        */
+
         const std::size_t
             comment_position =
                 line.find('#');
+
 
         if (
             comment_position !=
             std::string::npos
         )
         {
-            line.erase(
-                comment_position
-            );
+            line =
+                line.substr(
+                    0,
+                    comment_position
+                );
         }
 
 
-        line = trim(line);
+        line =
+            trim(line);
 
 
-        if (line.empty())
+        if (
+            line.empty()
+        )
         {
             continue;
         }
@@ -465,20 +823,13 @@ Problem ModelParser::parse_file(
             ) == 0
         )
         {
-            problem_name =
-                trim(
-                    line.substr(
-                        8
-                    )
-                );
-
             continue;
         }
 
 
         /*
             --------------------------------------------------
-            OBJECTIVE SENSE
+            MAXIMIZE
             --------------------------------------------------
         */
 
@@ -496,6 +847,12 @@ Problem ModelParser::parse_file(
             continue;
         }
 
+
+        /*
+            --------------------------------------------------
+            MINIMIZE
+            --------------------------------------------------
+        */
 
         if (
             lower_line == "minimize" ||
@@ -519,9 +876,12 @@ Problem ModelParser::parse_file(
         */
 
         if (
-            lower_line == "subject to" ||
-            lower_line == "subject_to" ||
-            lower_line == "constraints"
+            lower_line ==
+            "subject to" ||
+            lower_line ==
+            "subject_to" ||
+            lower_line ==
+            "constraints"
         )
         {
             section =
@@ -533,7 +893,7 @@ Problem ModelParser::parse_file(
 
         /*
             --------------------------------------------------
-            INTEGER VARIABLES
+            INTEGER SECTION
             --------------------------------------------------
         */
 
@@ -551,7 +911,7 @@ Problem ModelParser::parse_file(
 
         /*
             --------------------------------------------------
-            BINARY VARIABLES
+            BINARY SECTION
             --------------------------------------------------
         */
 
@@ -569,7 +929,7 @@ Problem ModelParser::parse_file(
 
         /*
             --------------------------------------------------
-            CONTINUOUS VARIABLES
+            CONTINUOUS SECTION
             --------------------------------------------------
         */
 
@@ -586,9 +946,9 @@ Problem ModelParser::parse_file(
 
 
         /*
-            --------------------------------------------------
-            OBJECTIVE EXPRESSION
-            --------------------------------------------------
+            ==================================================
+            OBJECTIVE
+            ==================================================
         */
 
         if (
@@ -616,14 +976,15 @@ Problem ModelParser::parse_file(
                 );
             }
 
+
             continue;
         }
 
 
         /*
-            --------------------------------------------------
-            CONSTRAINT EXPRESSION
-            --------------------------------------------------
+            ==================================================
+            CONSTRAINT
+            ==================================================
         */
 
         if (
@@ -631,16 +992,13 @@ Problem ModelParser::parse_file(
             Section::Constraints
         )
         {
-            std::string expression =
+            const std::string expression =
                 line;
-
-
-            ConstraintSense sense;
 
 
             std::size_t
                 operator_position =
-                std::string::npos;
+                    std::string::npos;
 
 
             std::string
@@ -648,20 +1006,36 @@ Problem ModelParser::parse_file(
 
 
             /*
-                Check >= and <= first.
+                Find <= first.
             */
 
             const std::size_t
                 less_equal =
-                expression.find("<=");
+                    expression.find(
+                        "<="
+                    );
+
+
+            /*
+                Find >=.
+            */
 
             const std::size_t
                 greater_equal =
-                expression.find(">=");
+                    expression.find(
+                        ">="
+                    );
+
+
+            /*
+                Find equality.
+            */
 
             const std::size_t
                 equality =
-                expression.find("=");
+                    expression.find(
+                        "="
+                    );
 
 
             if (
@@ -709,7 +1083,13 @@ Problem ModelParser::parse_file(
             }
 
 
-            const std::string
+            /*
+                ------------------------------------------------
+                LEFT SIDE
+                ------------------------------------------------
+            */
+
+            std::string
                 left_expression =
                     trim(
                         expression.substr(
@@ -719,6 +1099,12 @@ Problem ModelParser::parse_file(
                     );
 
 
+            /*
+                ------------------------------------------------
+                RIGHT SIDE
+                ------------------------------------------------
+            */
+
             const std::string
                 right_expression =
                     trim(
@@ -727,6 +1113,40 @@ Problem ModelParser::parse_file(
                             operator_text.size()
                         )
                     );
+
+
+            /*
+                Optional constraint label.
+
+                Example:
+
+                    capacity:
+                    2x + 3y <= 100
+
+                becomes:
+
+                    2x + 3y
+            */
+
+            const std::size_t
+                label_position =
+                    left_expression.find(
+                        ':'
+                    );
+
+
+            if (
+                label_position !=
+                std::string::npos
+            )
+            {
+                left_expression =
+                    trim(
+                        left_expression.substr(
+                            label_position + 1
+                        )
+                    );
+            }
 
 
             if (
@@ -744,6 +1164,10 @@ Problem ModelParser::parse_file(
             }
 
 
+            /*
+                Parse RHS.
+            */
+
             const double rhs =
                 parse_double(
                     right_expression,
@@ -753,6 +1177,10 @@ Problem ModelParser::parse_file(
                     )
                 );
 
+
+            /*
+                Create constraint data.
+            */
 
             ConstraintInfo constraint;
 
@@ -783,8 +1211,8 @@ Problem ModelParser::parse_file(
 
 
             /*
-                Register variables discovered
-                in the constraint.
+                Register variables found
+                inside this constraint.
             */
 
             for (
@@ -793,6 +1221,7 @@ Problem ModelParser::parse_file(
             )
             {
                 bool exists = false;
+
 
                 for (
                     const auto& variable :
@@ -805,6 +1234,7 @@ Problem ModelParser::parse_file(
                     )
                     {
                         exists = true;
+
                         break;
                     }
                 }
@@ -814,11 +1244,14 @@ Problem ModelParser::parse_file(
                 {
                     VariableInfo variable;
 
+
                     variable.name =
                         term.first;
 
+
                     variable.type =
                         VariableType::Continuous;
+
 
                     variables.push_back(
                         variable
@@ -832,17 +1265,9 @@ Problem ModelParser::parse_file(
 
 
         /*
-            --------------------------------------------------
+            ==================================================
             VARIABLE TYPE DECLARATIONS
-            --------------------------------------------------
-
-            Example:
-
-                INTEGER
-                    ProductA ProductB
-
-            We allow multiple variables on
-            the same line.
+            ==================================================
         */
 
         if (
@@ -854,7 +1279,10 @@ Problem ModelParser::parse_file(
             Section::Continuous
         )
         {
-            std::istringstream stream(line);
+            std::istringstream stream(
+                line
+            );
+
 
             std::string variable_name;
 
@@ -913,11 +1341,14 @@ Problem ModelParser::parse_file(
                 {
                     VariableInfo variable;
 
+
                     variable.name =
                         variable_name;
 
+
                     variable.type =
                         type;
+
 
                     variables.push_back(
                         variable
@@ -929,6 +1360,12 @@ Problem ModelParser::parse_file(
             continue;
         }
 
+
+        /*
+            ==================================================
+            UNKNOWN CONTENT
+            ==================================================
+        */
 
         throw std::runtime_error(
             "Unrecognized content on line " +
@@ -942,12 +1379,14 @@ Problem ModelParser::parse_file(
 
 
     /*
-        ------------------------------------------------------
+        ======================================================
         VALIDATION
-        ------------------------------------------------------
+        ======================================================
     */
 
-    if (variables.empty())
+    if (
+        variables.empty()
+    )
     {
         throw std::runtime_error(
             "The .dent model contains no variables."
@@ -955,7 +1394,9 @@ Problem ModelParser::parse_file(
     }
 
 
-    if (objective_terms.empty())
+    if (
+        objective_terms.empty()
+    )
     {
         throw std::runtime_error(
             "The .dent model contains no objective."
@@ -964,9 +1405,9 @@ Problem ModelParser::parse_file(
 
 
     /*
-        ------------------------------------------------------
+        ======================================================
         CREATE PROBLEM
-        ------------------------------------------------------
+        ======================================================
     */
 
     Problem problem(
@@ -977,11 +1418,14 @@ Problem ModelParser::parse_file(
     std::unordered_map<
         std::string,
         int
-    > variable_indices;
+    >
+        variable_indices;
 
 
     /*
-        Add variables.
+        ======================================================
+        ADD VARIABLES
+        ======================================================
     */
 
     for (
@@ -989,6 +1433,10 @@ Problem ModelParser::parse_file(
         variables
     )
     {
+        /*
+            Avoid duplicate variable declarations.
+        */
+
         if (
             variable_indices.find(
                 variable.name
@@ -1003,13 +1451,15 @@ Problem ModelParser::parse_file(
         double lower_bound =
             0.0;
 
+
         double upper_bound =
             0.0;
 
 
         /*
-            Binary variables naturally have
-            bounds [0,1].
+            Binary variables:
+
+                0 <= x <= 1
         */
 
         if (
@@ -1041,19 +1491,52 @@ Problem ModelParser::parse_file(
 
 
     /*
-        ------------------------------------------------------
+        ======================================================
         OBJECTIVE
-        ------------------------------------------------------
+        ======================================================
+
+        IMPORTANT:
+
+        Problem::set_objective_coefficient()
+        replaces the coefficient.
+
+        Therefore duplicate terms such as:
+
+            10x + 20x
+
+        must first be accumulated:
+
+            x = 30
+
+        before calling set_objective_coefficient().
     */
+
+    std::unordered_map<
+        std::string,
+        double
+    >
+        accumulated_objective;
+
 
     for (
         const auto& term :
         objective_terms
     )
     {
+        accumulated_objective[
+            term.first
+        ] += term.second;
+    }
+
+
+    for (
+        const auto& entry :
+        accumulated_objective
+    )
+    {
         const auto iterator =
             variable_indices.find(
-                term.first
+                entry.first
             );
 
 
@@ -1064,22 +1547,22 @@ Problem ModelParser::parse_file(
         {
             throw std::runtime_error(
                 "Objective references unknown variable: " +
-                term.first
+                entry.first
             );
         }
 
 
         problem.set_objective_coefficient(
             iterator->second,
-            term.second
+            entry.second
         );
     }
 
 
     /*
-        ------------------------------------------------------
-        CONSTRAINTS
-        ------------------------------------------------------
+        ======================================================
+        ADD CONSTRAINTS
+        ======================================================
     */
 
     for (
@@ -1109,7 +1592,24 @@ Problem ModelParser::parse_file(
 
 
     /*
-        Add constraint coefficients.
+        ======================================================
+        CONSTRAINT COEFFICIENTS
+        ======================================================
+
+        IMPORTANT:
+
+        Problem::set_constraint_coefficient()
+        replaces the coefficient.
+
+        Therefore:
+
+            2x + 3x <= 10
+
+        must become:
+
+            5x <= 10
+
+        before calling the Problem API.
     */
 
     for (
@@ -1118,14 +1618,42 @@ Problem ModelParser::parse_file(
         ++i
     )
     {
+        std::unordered_map<
+            std::string,
+            double
+        >
+            accumulated_coefficients;
+
+
+        /*
+            Accumulate every term belonging
+            to this constraint.
+        */
+
         for (
             const auto& term :
             constraint_data[i].coefficients
         )
         {
+            accumulated_coefficients[
+                term.first
+            ] += term.second;
+        }
+
+
+        /*
+            Write the accumulated coefficients
+            into the Problem.
+        */
+
+        for (
+            const auto& entry :
+            accumulated_coefficients
+        )
+        {
             const auto iterator =
                 variable_indices.find(
-                    term.first
+                    entry.first
                 );
 
 
@@ -1136,7 +1664,7 @@ Problem ModelParser::parse_file(
             {
                 throw std::runtime_error(
                     "Constraint references unknown variable: " +
-                    term.first
+                    entry.first
                 );
             }
 
@@ -1144,11 +1672,17 @@ Problem ModelParser::parse_file(
             problem.set_constraint_coefficient(
                 static_cast<int>(i),
                 iterator->second,
-                term.second
+                entry.second
             );
         }
     }
 
+
+    /*
+        ======================================================
+        RETURN
+        ======================================================
+    */
 
     return problem;
 }

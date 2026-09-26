@@ -27,6 +27,15 @@ public:
 
     bool has_warm_start() const override;
 
+    /*
+        Expose the most recently captured simplex
+        basis for MILP node reoptimization.
+    */
+    WarmStart last_warm_start() const
+    {
+        return warm_start_;
+    }
+
 private:
     double tolerance_;
 

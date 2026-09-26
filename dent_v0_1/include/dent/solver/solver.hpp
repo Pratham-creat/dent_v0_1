@@ -36,6 +36,18 @@ struct SolveResult
     bool warm_start_used =
         false;
 
+    /*
+        Basis information is exposed so that
+        MILP node LPs can reuse the parent basis.
+    */
+    std::vector<int> basis;
+
+    int basis_rows =
+        0;
+
+    int basis_columns =
+        0;
+
     std::string message;
 };
 

@@ -186,6 +186,18 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{3ADCC910-9105-3A8B-8569-72CC3BE98754}</Project>
       <Name>dent_interior_point_test</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_milp_branching_test.vcxproj">
+      <Project>{27524306-8D58-3182-99DA-1CFFC1665CB6}</Project>
+      <Name>dent_milp_branching_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_model_parser_test.vcxproj">
+      <Project>{87F234CA-95DE-3A3B-98A0-DC5AF63DA64D}</Project>
+      <Name>dent_model_parser_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_scaling_test.vcxproj">
+      <Project>{8D9C0847-B92F-34C2-BE2C-2AAEF1C4CEC2}</Project>
+      <Name>dent_scaling_test</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\Users\PRATHAM\Downloads\dent_v0_1\dent_v0_1\build\dent_solver_industry_test.vcxproj">
       <Project>{2033BAAA-0BDF-3C8D-92D0-CA824886254E}</Project>
       <Name>dent_solver_industry_test</Name>

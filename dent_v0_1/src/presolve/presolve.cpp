@@ -16,18 +16,10 @@ namespace
 constexpr double INF =
     std::numeric_limits<double>::infinity();
 
-
 double variable_upper_bound(
     const Variable& variable
 )
 {
-    /*
-     * DENT convention:
-     *
-     * upper_bound == 0
-     *
-     * means +infinity.
-     */
     if (variable.upper_bound == 0.0)
     {
         return INF;
@@ -35,15 +27,6 @@ double variable_upper_bound(
 
     return variable.upper_bound;
 }
-
-
-bool has_finite_upper_bound(
-    const Variable& variable
-)
-{
-    return variable.upper_bound != 0.0;
-}
-
 
 double clamp_value(
     double value,
@@ -70,10 +53,6 @@ double clamp_value(
 } // anonymous namespace
 
 
-// ============================================================
-// Constructor
-// ============================================================
-
 Presolver::Presolver(
     double tolerance,
     int max_passes
@@ -83,10 +62,6 @@ Presolver::Presolver(
 {
 }
 
-
-// ============================================================
-// Utility functions
-// ============================================================
 
 bool Presolver::approximately_equal(
     double a,
@@ -113,10 +88,6 @@ bool Presolver::is_finite(
 }
 
 
-// ============================================================
-// Bound tightening
-// ============================================================
-
 bool Presolver::tighten_single_variable_constraints(
     Problem& problem,
     PresolveStatistics& statistics,
@@ -137,30 +108,15 @@ bool Presolver::tighten_single_variable_constraints(
             problem.constraints().size()
         );
 
-
-    for (
-        int row = 0;
-        row < m;
-        ++row
-    )
+    for (int row = 0; row < m; ++row)
     {
         int nonzero_column = -1;
-
         double coefficient = 0.0;
 
         const auto& matrix =
             problem.matrix()[row];
 
-
-        /*
-         * Detect whether the row has exactly
-         * one nonzero coefficient.
-         */
-        for (
-            int column = 0;
-            column < n;
-            ++column
-        )
+        for (int column = 0; column < n; ++column)
         {
             if (is_zero(matrix[column]))
             {
@@ -174,20 +130,13 @@ bool Presolver::tighten_single_variable_constraints(
             }
 
             nonzero_column = column;
-
-            coefficient =
-                matrix[column];
+            coefficient = matrix[column];
         }
 
-
-        /*
-         * Not a single-variable constraint.
-         */
         if (nonzero_column < 0)
         {
             continue;
         }
-
 
         const int variable_index =
             nonzero_column;
@@ -198,7 +147,6 @@ bool Presolver::tighten_single_variable_constraints(
         const double rhs =
             constraint.rhs;
 
-
         if (
             !is_finite(rhs) ||
             !is_finite(coefficient)
@@ -207,12 +155,8 @@ bool Presolver::tighten_single_variable_constraints(
             continue;
         }
 
-
         Variable variable =
-            problem.variables()[
-                variable_index
-            ];
-
+            problem.variables()[variable_index];
 
         double lower =
             variable.lower_bound;
@@ -220,10 +164,8 @@ bool Presolver::tighten_single_variable_constraints(
         double upper =
             variable_upper_bound(variable);
 
-
         const double implied =
             rhs / coefficient;
-
 
         switch (constraint.sense)
         {
@@ -248,7 +190,6 @@ bool Presolver::tighten_single_variable_constraints(
 
             break;
 
-
         case ConstraintSense::GreaterEqual:
 
             if (coefficient > 0.0)
@@ -270,7 +211,6 @@ bool Presolver::tighten_single_variable_constraints(
 
             break;
 
-
         case ConstraintSense::Equal:
 
             lower = implied;
@@ -279,15 +219,9 @@ bool Presolver::tighten_single_variable_constraints(
             break;
         }
 
-
-        /*
-         * Integer variables require integral bounds.
-         */
         if (
-            variable.type ==
-                VariableType::Integer ||
-            variable.type ==
-                VariableType::Binary
+            variable.type == VariableType::Integer ||
+            variable.type == VariableType::Binary
         )
         {
             lower =
@@ -304,16 +238,7 @@ bool Presolver::tighten_single_variable_constraints(
             }
         }
 
-
-        /*
-         * Binary variables always satisfy:
-         *
-         *     0 <= x <= 1
-         */
-        if (
-            variable.type ==
-            VariableType::Binary
-        )
+        if (variable.type == VariableType::Binary)
         {
             lower =
                 std::max(
@@ -328,20 +253,14 @@ bool Presolver::tighten_single_variable_constraints(
                 );
         }
 
-
-        /*
-         * Contradictory bounds.
-         */
         if (
             std::isfinite(upper) &&
             lower > upper + tolerance_
         )
         {
             infeasible = true;
-
             return false;
         }
-
 
         const double old_lower =
             variable.lower_bound;
@@ -349,9 +268,7 @@ bool Presolver::tighten_single_variable_constraints(
         const double old_upper =
             variable_upper_bound(variable);
 
-
         bool bound_changed = false;
-
 
         if (
             !approximately_equal(
@@ -362,7 +279,6 @@ bool Presolver::tighten_single_variable_constraints(
         {
             bound_changed = true;
         }
-
 
         if (std::isfinite(upper))
         {
@@ -378,17 +294,8 @@ bool Presolver::tighten_single_variable_constraints(
             }
         }
 
-
         if (bound_changed)
         {
-            /*
-             * Keep the tightened bounds inside
-             * the working model.
-             *
-             * They will be converted into explicit
-             * constraints when the reduced model
-             * is constructed.
-             */
             const double stored_upper =
                 std::isfinite(upper)
                     ? upper
@@ -401,19 +308,13 @@ bool Presolver::tighten_single_variable_constraints(
             );
 
             ++statistics.bounds_tightened;
-
             changed = true;
         }
     }
 
-
     return changed;
 }
 
-
-// ============================================================
-// Trivial constraints
-// ============================================================
 
 bool Presolver::detect_trivial_constraints(
     const Problem& problem,
@@ -433,27 +334,16 @@ bool Presolver::detect_trivial_constraints(
             problem.variables().size()
         );
 
-
     removable_constraints.assign(
         m,
         false
     );
 
-
-    for (
-        int row = 0;
-        row < m;
-        ++row
-    )
+    for (int row = 0; row < m; ++row)
     {
         bool has_nonzero = false;
 
-
-        for (
-            int column = 0;
-            column < n;
-            ++column
-        )
+        for (int column = 0; column < n; ++column)
         {
             if (
                 !is_zero(
@@ -466,12 +356,10 @@ bool Presolver::detect_trivial_constraints(
             }
         }
 
-
         if (has_nonzero)
         {
             continue;
         }
-
 
         const Constraint& constraint =
             problem.constraints()[row];
@@ -479,99 +367,62 @@ bool Presolver::detect_trivial_constraints(
         const double rhs =
             constraint.rhs;
 
-
         bool satisfied = false;
-
 
         switch (constraint.sense)
         {
         case ConstraintSense::LessEqual:
 
             satisfied =
-                0.0 <=
-                rhs + tolerance_;
+                0.0 <= rhs + tolerance_;
 
             break;
-
 
         case ConstraintSense::Equal:
 
             satisfied =
-                std::abs(rhs) <=
-                tolerance_;
+                std::abs(rhs) <= tolerance_;
 
             break;
-
 
         case ConstraintSense::GreaterEqual:
 
             satisfied =
-                0.0 >=
-                rhs - tolerance_;
+                0.0 >= rhs - tolerance_;
 
             break;
         }
 
-
         if (!satisfied)
         {
             infeasible = true;
-
             return false;
         }
 
-
-        removable_constraints[row] =
-            true;
+        removable_constraints[row] = true;
     }
-
 
     return true;
 }
 
-
-// ============================================================
-// Row scaling
-// ============================================================
 
 void Presolver::scale_rows(
     Problem& problem,
     PresolveStatistics& statistics
 ) const
 {
-    const int m =
-        static_cast<int>(
-            problem.constraints().size()
-        );
-
-    const int n =
-        static_cast<int>(
-            problem.variables().size()
-        );
-
-
     /*
-     * NOTE:
+     * Row scaling is performed when the reduced
+     * model is constructed because Problem does
+     * not expose a direct RHS setter.
      *
-     * Problem currently does not expose a direct
-     * set_constraint_rhs() operation.
-     *
-     * Therefore actual scaling is performed while
-     * constructing the reduced model.
-     *
-     * This method remains as the logical scaling
-     * stage and statistics hook.
+     * This method intentionally does not perform
+     * another scaling pass.
      */
     (void)problem;
     (void)statistics;
-    (void)m;
-    (void)n;
 }
 
-
-// ============================================================
-// Build reduced model
-// ============================================================
 
 Problem Presolver::build_reduced_problem(
     const Problem& problem,
@@ -592,15 +443,9 @@ Problem Presolver::build_reduced_problem(
             problem.constraints().size()
         );
 
-
     Problem reduced(
         problem.objective_sense()
     );
-
-
-    // --------------------------------------------------------
-    // Variable mapping
-    // --------------------------------------------------------
 
     result.original_to_reduced.assign(
         original_n,
@@ -609,38 +454,18 @@ Problem Presolver::build_reduced_problem(
 
     result.reduced_to_original.clear();
 
-
-    for (
-        int i = 0;
-        i < original_n;
-        ++i
-    )
+    for (int i = 0; i < original_n; ++i)
     {
         if (fixed_variables[i])
         {
             continue;
         }
 
-
         const Variable& variable =
             problem.variables()[i];
 
-
-        /*
-         * Important:
-         *
-         * Do NOT pass presolve-generated finite
-         * bounds directly to Simplex.
-         *
-         * Current Simplex works with the default
-         * nonnegative variable representation.
-         *
-         * Tightened bounds are represented below
-         * as explicit linear constraints.
-         */
         const Variable& original_variable =
             original_problem.variables()[i];
-
 
         const int reduced_index =
             reduced.add_variable(
@@ -650,17 +475,11 @@ Problem Presolver::build_reduced_problem(
                 variable.type
             );
 
-
         result.original_to_reduced[i] =
             reduced_index;
 
         result.reduced_to_original.push_back(i);
     }
-
-
-    // --------------------------------------------------------
-    // Linear objective
-    // --------------------------------------------------------
 
     const auto& c =
         problem.objective();
@@ -668,49 +487,31 @@ Problem Presolver::build_reduced_problem(
     const auto& Q =
         problem.quadratic_matrix();
 
-
-    for (
-        int original_i = 0;
-        original_i < original_n;
-        ++original_i
-    )
+    for (int original_i = 0;
+         original_i < original_n;
+         ++original_i)
     {
         if (fixed_variables[original_i])
         {
             continue;
         }
 
-
         const int reduced_i =
             result.original_to_reduced[
                 original_i
             ];
 
-
         double coefficient =
             c[original_i];
 
-
-        /*
-         * Fixed-variable contribution:
-         *
-         * 1/2 x^T Q x
-         *
-         * gives:
-         *
-         * 1/2(Qij + Qji) x_i x_j
-         */
-        for (
-            int fixed_j = 0;
-            fixed_j < original_n;
-            ++fixed_j
-        )
+        for (int fixed_j = 0;
+             fixed_j < original_n;
+             ++fixed_j)
         {
             if (!fixed_variables[fixed_j])
             {
                 continue;
             }
-
 
             coefficient +=
                 0.5 *
@@ -721,66 +522,45 @@ Problem Presolver::build_reduced_problem(
                 fixed_values[fixed_j];
         }
 
-
         reduced.set_objective_coefficient(
             reduced_i,
             coefficient
         );
     }
 
+    double objective_offset = 0.0;
 
-    // --------------------------------------------------------
-    // Objective constant
-    // --------------------------------------------------------
-
-    double objective_offset =
-        0.0;
-
-
-    for (
-        int i = 0;
-        i < original_n;
-        ++i
-    )
+    for (int i = 0;
+         i < original_n;
+         ++i)
     {
         if (!fixed_variables[i])
         {
             continue;
         }
-
 
         objective_offset +=
             c[i] *
             fixed_values[i];
     }
 
-
-    /*
-     * Fixed-fixed quadratic contribution.
-     */
-    for (
-        int i = 0;
-        i < original_n;
-        ++i
-    )
+    for (int i = 0;
+         i < original_n;
+         ++i)
     {
         if (!fixed_variables[i])
         {
             continue;
         }
 
-
-        for (
-            int j = 0;
-            j < original_n;
-            ++j
-        )
+        for (int j = 0;
+             j < original_n;
+             ++j)
         {
             if (!fixed_variables[j])
             {
                 continue;
             }
-
 
             objective_offset +=
                 0.5 *
@@ -790,54 +570,39 @@ Problem Presolver::build_reduced_problem(
         }
     }
 
-
     result.objective_offset =
         objective_offset;
 
-
-    // --------------------------------------------------------
-    // Quadratic matrix
-    // --------------------------------------------------------
-
-    for (
-        int original_i = 0;
-        original_i < original_n;
-        ++original_i
-    )
+    for (int original_i = 0;
+         original_i < original_n;
+         ++original_i)
     {
         if (fixed_variables[original_i])
         {
             continue;
         }
 
-
         const int reduced_i =
             result.original_to_reduced[
                 original_i
             ];
 
-
-        for (
-            int original_j = 0;
-            original_j < original_n;
-            ++original_j
-        )
+        for (int original_j = 0;
+             original_j < original_n;
+             ++original_j)
         {
             if (fixed_variables[original_j])
             {
                 continue;
             }
 
-
             const int reduced_j =
                 result.original_to_reduced[
                     original_j
                 ];
 
-
             const double coefficient =
                 Q[original_i][original_j];
-
 
             if (!is_zero(coefficient))
             {
@@ -850,147 +615,79 @@ Problem Presolver::build_reduced_problem(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Original constraints
-    // --------------------------------------------------------
-
-    for (
-        int original_row = 0;
-        original_row < original_m;
-        ++original_row
-    )
+    for (int original_row = 0;
+         original_row < original_m;
+         ++original_row)
     {
-        if (
-            removable_constraints[
-                original_row
-            ]
-        )
+        if (removable_constraints[original_row])
         {
             continue;
         }
 
-
         const Constraint& original_constraint =
-            problem.constraints()[
-                original_row
-            ];
-
+            problem.constraints()[original_row];
 
         double rhs =
             original_constraint.rhs;
 
-
-        /*
-         * Move fixed variables to RHS.
-         */
-        for (
-            int original_column = 0;
-            original_column < original_n;
-            ++original_column
-        )
+        for (int original_column = 0;
+             original_column < original_n;
+             ++original_column)
         {
-            if (
-                !fixed_variables[
-                    original_column
-                ]
-            )
+            if (!fixed_variables[original_column])
             {
                 continue;
             }
-
 
             rhs -=
-                problem.matrix()[
-                    original_row
-                ][
-                    original_column
-                ] *
-                fixed_values[
-                    original_column
-                ];
+                problem.matrix()[original_row]
+                                [original_column] *
+                fixed_values[original_column];
         }
 
+        double row_scale = 0.0;
 
-        /*
-         * Find maximum coefficient magnitude.
-         */
-        double row_scale =
-            0.0;
-
-
-        for (
-            int original_column = 0;
-            original_column < original_n;
-            ++original_column
-        )
+        for (int original_column = 0;
+             original_column < original_n;
+             ++original_column)
         {
-            if (
-                fixed_variables[
-                    original_column
-                ]
-            )
+            if (fixed_variables[original_column])
             {
                 continue;
             }
-
 
             row_scale =
                 std::max(
                     row_scale,
                     std::abs(
-                        problem.matrix()[
-                            original_row
-                        ][
-                            original_column
-                        ]
+                        problem.matrix()
+                            [original_row]
+                            [original_column]
                     )
                 );
         }
 
-
-        /*
-         * Fixed-variable substitution may have
-         * converted the row into a constant row.
-         */
-        if (
-            row_scale <= tolerance_
-        )
+        if (row_scale <= tolerance_)
         {
             bool satisfied = false;
 
-
-            switch (
-                original_constraint.sense
-            )
+            switch (original_constraint.sense)
             {
             case ConstraintSense::LessEqual:
-
                 satisfied =
-                    0.0 <=
-                    rhs + tolerance_;
-
+                    0.0 <= rhs + tolerance_;
                 break;
-
 
             case ConstraintSense::Equal:
-
                 satisfied =
-                    std::abs(rhs) <=
-                    tolerance_;
-
+                    std::abs(rhs) <= tolerance_;
                 break;
-
 
             case ConstraintSense::GreaterEqual:
-
                 satisfied =
-                    0.0 >=
-                    rhs - tolerance_;
-
+                    0.0 >= rhs - tolerance_;
                 break;
             }
-
 
             if (!satisfied)
             {
@@ -1005,39 +702,17 @@ Problem Presolver::build_reduced_problem(
                 return reduced;
             }
 
-
             ++result.statistics.constraints_removed;
-
             continue;
         }
 
-
-        /*
-         * ----------------------------------------------------
-         * Row scaling
-         *
-         *     A x <= b
-         *
-         * becomes
-         *
-         *     (A/s)x <= b/s
-         *
-         * where
-         *
-         *     s = max |Aij|
-         * ----------------------------------------------------
-         */
         double scale =
             row_scale;
 
-
-        if (
-            scale <= tolerance_
-        )
+        if (scale <= tolerance_)
         {
             scale = 1.0;
         }
-
 
         if (
             std::abs(scale - 1.0) >
@@ -1051,7 +726,6 @@ Problem Presolver::build_reduced_problem(
             scale = 1.0;
         }
 
-
         const int reduced_row =
             reduced.add_constraint(
                 original_constraint.name,
@@ -1059,42 +733,29 @@ Problem Presolver::build_reduced_problem(
                 rhs / scale
             );
 
-
-        for (
-            int original_column = 0;
-            original_column < original_n;
-            ++original_column
-        )
+        for (int original_column = 0;
+             original_column < original_n;
+             ++original_column)
         {
-            if (
-                fixed_variables[
-                    original_column
-                ]
-            )
+            if (fixed_variables[original_column])
             {
                 continue;
             }
 
-
             const double coefficient =
-                problem.matrix()[
-                    original_row
-                ][
-                    original_column
-                ];
-
+                problem.matrix()
+                    [original_row]
+                    [original_column];
 
             if (is_zero(coefficient))
             {
                 continue;
             }
 
-
             const int reduced_column =
                 result.original_to_reduced[
                     original_column
                 ];
-
 
             reduced.set_constraint_coefficient(
                 reduced_row,
@@ -1104,37 +765,29 @@ Problem Presolver::build_reduced_problem(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Preserve presolve-tightened bounds as explicit
-    // constraints instead of passing them directly to
-    // the current Simplex implementation.
-    // --------------------------------------------------------
-
-    for (
-        int original_i = 0;
-        original_i < original_n;
-        ++original_i
-    )
+    /*
+     * Preserve tightened bounds as explicit
+     * constraints.
+     */
+    for (int original_i = 0;
+         original_i < original_n;
+         ++original_i)
     {
         if (fixed_variables[original_i])
         {
             continue;
         }
 
-
         const int reduced_i =
             result.original_to_reduced[
                 original_i
             ];
-
 
         const Variable& working_variable =
             problem.variables()[original_i];
 
         const Variable& original_variable =
             original_problem.variables()[original_i];
-
 
         const double tightened_lower =
             working_variable.lower_bound;
@@ -1144,7 +797,6 @@ Problem Presolver::build_reduced_problem(
                 working_variable
             );
 
-
         const double original_lower =
             original_variable.lower_bound;
 
@@ -1153,12 +805,6 @@ Problem Presolver::build_reduced_problem(
                 original_variable
             );
 
-
-        /*
-         * Tightened lower bound.
-         *
-         * x >= L
-         */
         if (
             tightened_lower >
             original_lower + tolerance_
@@ -1172,7 +818,6 @@ Problem Presolver::build_reduced_problem(
                     tightened_lower
                 );
 
-
             reduced.set_constraint_coefficient(
                 row,
                 reduced_i,
@@ -1180,12 +825,6 @@ Problem Presolver::build_reduced_problem(
             );
         }
 
-
-        /*
-         * Tightened finite upper bound.
-         *
-         * x <= U
-         */
         if (
             std::isfinite(tightened_upper) &&
             (
@@ -1204,7 +843,6 @@ Problem Presolver::build_reduced_problem(
                     tightened_upper
                 );
 
-
             reduced.set_constraint_coefficient(
                 row,
                 reduced_i,
@@ -1213,14 +851,9 @@ Problem Presolver::build_reduced_problem(
         }
     }
 
-
     return reduced;
 }
 
-
-// ============================================================
-// Main presolve routine
-// ============================================================
 
 PresolveResult Presolver::run(
     const Problem& problem
@@ -1230,7 +863,6 @@ PresolveResult Presolver::run(
         PresolveStatus::Success,
         Problem(problem.objective_sense())
     };
-
 
     result.statistics.original_variables =
         static_cast<int>(
@@ -1242,17 +874,11 @@ PresolveResult Presolver::run(
             problem.constraints().size()
         );
 
-
     const int n =
         result.statistics.original_variables;
 
     const int m =
         result.statistics.original_constraints;
-
-
-    // --------------------------------------------------------
-    // Basic validation
-    // --------------------------------------------------------
 
     if (n < 0 || m < 0)
     {
@@ -1264,7 +890,6 @@ PresolveResult Presolver::run(
 
         return result;
     }
-
 
     if (
         static_cast<int>(
@@ -1282,7 +907,6 @@ PresolveResult Presolver::run(
         return result;
     }
 
-
     if (
         static_cast<int>(
             problem.matrix().size()
@@ -1299,11 +923,7 @@ PresolveResult Presolver::run(
         return result;
     }
 
-
-    for (
-        const auto& row :
-        problem.matrix()
-    )
+    for (const auto& row : problem.matrix())
     {
         if (
             static_cast<int>(
@@ -1322,11 +942,6 @@ PresolveResult Presolver::run(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Validate Q
-    // --------------------------------------------------------
-
     if (
         static_cast<int>(
             problem.quadratic_matrix().size()
@@ -1342,7 +957,6 @@ PresolveResult Presolver::run(
 
         return result;
     }
-
 
     for (
         const auto& row :
@@ -1365,18 +979,8 @@ PresolveResult Presolver::run(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Work on a copy
-    // --------------------------------------------------------
-
     Problem working =
         problem;
-
-
-    // --------------------------------------------------------
-    // Phase 1: bound tightening
-    // --------------------------------------------------------
 
     for (
         int pass = 0;
@@ -1384,9 +988,7 @@ PresolveResult Presolver::run(
         ++pass
     )
     {
-        bool infeasible =
-            false;
-
+        bool infeasible = false;
 
         const bool changed =
             tighten_single_variable_constraints(
@@ -1394,7 +996,6 @@ PresolveResult Presolver::run(
                 result.statistics,
                 infeasible
             );
-
 
         if (infeasible)
         {
@@ -1418,17 +1019,11 @@ PresolveResult Presolver::run(
             return result;
         }
 
-
         if (!changed)
         {
             break;
         }
     }
-
-
-    // --------------------------------------------------------
-    // Detect fixed variables
-    // --------------------------------------------------------
 
     std::vector<bool> fixed_variables(
         n,
@@ -1440,26 +1035,20 @@ PresolveResult Presolver::run(
         0.0
     );
 
-
-    for (
-        int i = 0;
-        i < n;
-        ++i
-    )
+    for (int i = 0;
+         i < n;
+         ++i)
     {
         const Variable& variable =
             working.variables()[i];
 
-
         const double upper =
             variable_upper_bound(variable);
-
 
         if (!std::isfinite(upper))
         {
             continue;
         }
-
 
         if (
             approximately_equal(
@@ -1468,8 +1057,7 @@ PresolveResult Presolver::run(
             )
         )
         {
-            fixed_variables[i] =
-                true;
+            fixed_variables[i] = true;
 
             fixed_values[i] =
                 clamp_value(
@@ -1482,24 +1070,16 @@ PresolveResult Presolver::run(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Detect trivial constraints
-    // --------------------------------------------------------
-
     std::vector<bool>
         removable_constraints;
 
-    bool infeasible =
-        false;
-
+    bool infeasible = false;
 
     detect_trivial_constraints(
         working,
         removable_constraints,
         infeasible
     );
-
 
     if (infeasible)
     {
@@ -1521,7 +1101,6 @@ PresolveResult Presolver::run(
         return result;
     }
 
-
     for (
         bool removable :
         removable_constraints
@@ -1534,14 +1113,8 @@ PresolveResult Presolver::run(
         }
     }
 
-
-    // --------------------------------------------------------
-    // Build reduced model
-    // --------------------------------------------------------
-
     result.fixed_values =
         fixed_values;
-
 
     Problem reduced =
         build_reduced_problem(
@@ -1553,7 +1126,6 @@ PresolveResult Presolver::run(
             result
         );
 
-
     if (
         result.status ==
         PresolveStatus::Infeasible
@@ -1562,13 +1134,11 @@ PresolveResult Presolver::run(
         return result;
     }
 
-
     result.statistics.variables_removed =
         result.statistics.original_variables -
         static_cast<int>(
             result.reduced_to_original.size()
         );
-
 
     result.statistics.constraints_removed =
         result.statistics.original_constraints -
@@ -1576,33 +1146,24 @@ PresolveResult Presolver::run(
             reduced.constraints().size()
         );
 
-
     result.statistics.reduced_variables =
         static_cast<int>(
             reduced.variables().size()
         );
-
 
     result.statistics.reduced_constraints =
         static_cast<int>(
             reduced.constraints().size()
         );
 
-
     result.reduced_problem =
         reduced;
-
-
-    // --------------------------------------------------------
-    // Final message
-    // --------------------------------------------------------
 
     const bool changed =
         result.statistics.variables_removed > 0 ||
         result.statistics.constraints_removed > 0 ||
         result.statistics.bounds_tightened > 0 ||
         result.statistics.rows_scaled > 0;
-
 
     if (changed)
     {
@@ -1616,14 +1177,9 @@ PresolveResult Presolver::run(
             "Presolve found no removable structure.";
     }
 
-
     return result;
 }
 
-
-// ============================================================
-// Postsolve variable reconstruction
-// ============================================================
 
 std::vector<double>
 PresolveResult::postsolve_values(
@@ -1633,16 +1189,10 @@ PresolveResult::postsolve_values(
     const std::size_t original_size =
         fixed_values.size();
 
-
     std::vector<double> result(
         original_size,
         0.0
     );
-
-
-    // --------------------------------------------------------
-    // Restore fixed variables
-    // --------------------------------------------------------
 
     for (
         std::size_t i = 0;
@@ -1658,15 +1208,9 @@ PresolveResult::postsolve_values(
             continue;
         }
 
-
         result[i] =
             fixed_values[i];
     }
-
-
-    // --------------------------------------------------------
-    // Restore surviving variables
-    // --------------------------------------------------------
 
     for (
         std::size_t reduced_i = 0;
@@ -1679,7 +1223,6 @@ PresolveResult::postsolve_values(
                 reduced_i
             ];
 
-
         if (
             reduced_i >=
             reduced_values.size()
@@ -1687,7 +1230,6 @@ PresolveResult::postsolve_values(
         {
             continue;
         }
-
 
         if (
             original_i >= 0 &&
@@ -1697,23 +1239,14 @@ PresolveResult::postsolve_values(
                 )
         )
         {
-            result[
-                original_i
-            ] =
-                reduced_values[
-                    reduced_i
-                ];
+            result[original_i] =
+                reduced_values[reduced_i];
         }
     }
-
 
     return result;
 }
 
-
-// ============================================================
-// Postsolve objective
-// ============================================================
 
 double PresolveResult::postsolve_objective(
     double reduced_objective
@@ -1723,6 +1256,5 @@ double PresolveResult::postsolve_objective(
         reduced_objective +
         objective_offset;
 }
-
 
 } // namespace dent

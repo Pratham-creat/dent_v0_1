@@ -13,33 +13,17 @@ namespace
 
 constexpr double EPS = 1e-12;
 
-bool is_finite_upper_bound(double upper_bound)
+bool is_finite_upper_bound(
+    double upper_bound
+)
 {
-    return upper_bound != 0.0 &&
-           std::isfinite(upper_bound);
-}
-
-double variable_upper_bound(const Variable& variable)
-{
-    if (variable.upper_bound == 0.0)
-    {
-        return std::numeric_limits<double>::infinity();
-    }
-
-    return variable.upper_bound;
-}
-
-double safe_inverse(double value)
-{
-    if (std::abs(value) <= EPS)
-    {
-        return 1.0;
-    }
-
-    return 1.0 / value;
+    return
+        upper_bound != 0.0 &&
+        std::isfinite(upper_bound);
 }
 
 } // namespace
+
 
 GeometricScaler::GeometricScaler(
     double tolerance,
@@ -63,125 +47,178 @@ GeometricScaler::GeometricScaler(
     }
 }
 
-bool GeometricScaler::approximately_one(double value) const
+
+bool GeometricScaler::approximately_one(
+    double value
+) const
 {
-    return std::abs(value - 1.0) <= tolerance_;
+    return
+        std::abs(value - 1.0) <=
+        tolerance_;
 }
 
-std::vector<double> GeometricScaler::compute_row_scales(
+
+std::vector<double>
+GeometricScaler::compute_row_scales(
     const Problem& problem,
     const std::vector<double>& column_scale
 ) const
 {
-    const auto& matrix = problem.matrix();
-    const auto& constraints = problem.constraints();
+    const auto& matrix =
+        problem.matrix();
 
     const int rows =
-        static_cast<int>(constraints.size());
+        static_cast<int>(
+            problem.constraints().size()
+        );
 
     const int columns =
-        static_cast<int>(problem.variables().size());
+        static_cast<int>(
+            problem.variables().size()
+        );
 
     std::vector<double> row_scale(
         rows,
         1.0
     );
 
-    for (int i = 0; i < rows; ++i)
+    for (int i = 0;
+         i < rows;
+         ++i)
     {
         double norm = 0.0;
 
-        for (int j = 0; j < columns; ++j)
+        for (int j = 0;
+             j < columns;
+             ++j)
         {
             const double value =
-                std::abs(matrix[i][j] * column_scale[j]);
+                std::abs(
+                    matrix[i][j] *
+                    column_scale[j]
+                );
 
-            norm = std::max(norm, value);
+            norm =
+                std::max(
+                    norm,
+                    value
+                );
         }
 
-        if (norm > EPS &&
-            std::isfinite(norm))
+        if (
+            norm > EPS &&
+            std::isfinite(norm)
+        )
         {
             row_scale[i] =
-                1.0 / std::sqrt(norm);
+                1.0 /
+                std::sqrt(norm);
         }
     }
 
     return row_scale;
 }
 
-std::vector<double> GeometricScaler::compute_column_scales(
+
+std::vector<double>
+GeometricScaler::compute_column_scales(
     const Problem& problem,
     const std::vector<double>& row_scale
 ) const
 {
-    const auto& matrix = problem.matrix();
-    const auto& variables = problem.variables();
+    const auto& matrix =
+        problem.matrix();
+
+    const auto& variables =
+        problem.variables();
+
+    const auto& quadratic =
+        problem.quadratic_matrix();
 
     const int rows =
-        static_cast<int>(problem.constraints().size());
+        static_cast<int>(
+            problem.constraints().size()
+        );
 
     const int columns =
-        static_cast<int>(variables.size());
+        static_cast<int>(
+            variables.size()
+        );
 
     std::vector<double> column_scale(
         columns,
         1.0
     );
 
-    for (int j = 0; j < columns; ++j)
+    for (int j = 0;
+         j < columns;
+         ++j)
     {
         /*
-            Integer and binary variables must not be
-            column-scaled because doing so changes
-            their integrality semantics.
-        */
-        if (variables[j].type != VariableType::Continuous)
+         * Never scale integer/binary columns.
+         * Scaling them would change their integer
+         * semantics.
+         */
+        if (
+            variables[j].type !=
+            VariableType::Continuous
+        )
         {
-            column_scale[j] = 1.0;
             continue;
         }
 
         double norm = 0.0;
 
-        for (int i = 0; i < rows; ++i)
+        for (int i = 0;
+             i < rows;
+             ++i)
         {
             const double value =
                 std::abs(
-                    row_scale[i] * matrix[i][j]
+                    row_scale[i] *
+                    matrix[i][j]
                 );
 
-            norm = std::max(norm, value);
+            norm =
+                std::max(
+                    norm,
+                    value
+                );
         }
 
         /*
-            Include the quadratic matrix when present.
-            This prevents a QP column from being scaled
-            solely according to A when Q dominates.
-        */
-        const auto& quadratic =
-            problem.quadratic_matrix();
-
-        for (int k = 0; k < columns; ++k)
+         * Include Q when this is a QP.
+         */
+        for (int k = 0;
+             k < columns;
+             ++k)
         {
             const double value =
                 std::abs(
                     quadratic[k][j]
                 );
 
-            norm = std::max(norm, value);
+            norm =
+                std::max(
+                    norm,
+                    value
+                );
         }
 
-        if (norm > EPS &&
-            std::isfinite(norm))
+        if (
+            norm > EPS &&
+            std::isfinite(norm)
+        )
         {
             column_scale[j] =
-                1.0 / std::sqrt(norm);
+                1.0 /
+                std::sqrt(norm);
         }
     }
 
     return column_scale;
 }
+
 
 Problem GeometricScaler::build_scaled_problem(
     const Problem& problem,
@@ -209,22 +246,48 @@ Problem GeometricScaler::build_scaled_problem(
         problem.quadratic_matrix();
 
     const int rows =
-        static_cast<int>(constraints.size());
+        static_cast<int>(
+            constraints.size()
+        );
 
     const int columns =
-        static_cast<int>(variables.size());
+        static_cast<int>(
+            variables.size()
+        );
+
+    if (
+        static_cast<int>(
+            row_scale.size()
+        ) != rows
+    )
+    {
+        throw std::invalid_argument(
+            "Row scaling dimension mismatch."
+        );
+    }
+
+    if (
+        static_cast<int>(
+            column_scale.size()
+        ) != columns
+    )
+    {
+        throw std::invalid_argument(
+            "Column scaling dimension mismatch."
+        );
+    }
 
     /*
-        Create transformed variables.
-
-        x_j = d_j z_j
-
-        Therefore:
-
-        lower(z_j) = lower(x_j) / d_j
-        upper(z_j) = upper(x_j) / d_j
-    */
-    for (int j = 0; j < columns; ++j)
+     * x = D z
+     *
+     * Therefore:
+     *
+     * lower(z) = lower(x) / D
+     * upper(z) = upper(x) / D
+     */
+    for (int j = 0;
+         j < columns;
+         ++j)
     {
         const Variable& variable =
             variables[j];
@@ -232,68 +295,67 @@ Problem GeometricScaler::build_scaled_problem(
         const double scale =
             column_scale[j];
 
-        if (scale <= 0.0 ||
-            !std::isfinite(scale))
+        if (
+            scale <= 0.0 ||
+            !std::isfinite(scale)
+        )
         {
             throw std::runtime_error(
                 "Invalid column scaling factor."
             );
         }
 
-        const double lower_bound =
-            variable.lower_bound / scale;
+        const double lower =
+            variable.lower_bound /
+            scale;
 
-        double upper_bound = 0.0;
+        double upper = 0.0;
 
-        if (is_finite_upper_bound(variable.upper_bound))
+        if (
+            is_finite_upper_bound(
+                variable.upper_bound
+            )
+        )
         {
-            upper_bound =
-                variable.upper_bound / scale;
+            upper =
+                variable.upper_bound /
+                scale;
         }
 
+        /*
+         * Integer and binary variables use
+         * scale 1.0, so their semantics remain
+         * unchanged.
+         */
         scaled.add_variable(
             variable.name,
-            lower_bound,
-            upper_bound,
+            lower,
+            upper,
             variable.type
         );
     }
 
     /*
-        Transform linear objective:
-
-            c^T x
-
-        where
-
-            x = D_c z
-
-        gives:
-
-            c'^T z
-
-        with
-
-            c'_j = c_j d_j
-    */
-    for (int j = 0; j < columns; ++j)
+     * c' = D c
+     */
+    for (int j = 0;
+         j < columns;
+         ++j)
     {
         scaled.set_objective_coefficient(
             j,
-            objective[j] * column_scale[j]
+            objective[j] *
+            column_scale[j]
         );
     }
 
     /*
-        Transform constraints:
-
-            A x <= b
-
-        into:
-
-            D_r A D_c z <= D_r b
-    */
-    for (int i = 0; i < rows; ++i)
+     * A' = D_r A D_c
+     * b' = D_r b
+     */
+    for (int i = 0;
+         i < rows;
+         ++i)
     {
         const Constraint& constraint =
             constraints[i];
@@ -302,17 +364,23 @@ Problem GeometricScaler::build_scaled_problem(
             scaled.add_constraint(
                 constraint.name,
                 constraint.sense,
-                constraint.rhs * row_scale[i]
+                constraint.rhs *
+                row_scale[i]
             );
 
-        for (int j = 0; j < columns; ++j)
+        for (int j = 0;
+             j < columns;
+             ++j)
         {
             const double value =
                 matrix[i][j] *
                 row_scale[i] *
                 column_scale[j];
 
-            if (std::abs(value) > EPS)
+            if (
+                std::abs(value) >
+                EPS
+            )
             {
                 scaled.set_constraint_coefficient(
                     new_constraint,
@@ -324,28 +392,25 @@ Problem GeometricScaler::build_scaled_problem(
     }
 
     /*
-        QP transformation.
-
-        Original:
-
-            1/2 x^T Q x + c^T x
-
-        x = D_c z
-
-        gives:
-
-            1/2 z^T D_c Q D_c z + c'^T z
-    */
-    for (int i = 0; i < columns; ++i)
+     * Q' = D Q D
+     */
+    for (int i = 0;
+         i < columns;
+         ++i)
     {
-        for (int j = 0; j < columns; ++j)
+        for (int j = 0;
+             j < columns;
+             ++j)
         {
             const double value =
                 quadratic[i][j] *
                 column_scale[i] *
                 column_scale[j];
 
-            if (std::abs(value) > EPS)
+            if (
+                std::abs(value) >
+                EPS
+            )
             {
                 scaled.set_quadratic_coefficient(
                     i,
@@ -358,6 +423,7 @@ Problem GeometricScaler::build_scaled_problem(
 
     return scaled;
 }
+
 
 ScalingResult GeometricScaler::scale(
     const Problem& problem
@@ -387,9 +453,14 @@ ScalingResult GeometricScaler::scale(
         1.0
     );
 
-    if (rows == 0 || columns == 0)
+    if (
+        rows == 0 ||
+        columns == 0
+    )
     {
-        result.scaled_problem = problem;
+        result.scaled_problem =
+            problem;
+
         result.message =
             "Scaling skipped: empty model.";
 
@@ -406,51 +477,83 @@ ScalingResult GeometricScaler::scale(
         1.0
     );
 
-    Problem current = problem;
+    Problem current =
+        problem;
 
-    for (int iteration = 0;
-         iteration < max_iterations_;
-         ++iteration)
+    for (
+        int iteration = 0;
+        iteration < max_iterations_;
+        ++iteration
+    )
     {
         /*
-            Row equilibration.
-        */
+         * IMPORTANT:
+         *
+         * current already contains all scaling
+         * from previous iterations.
+         *
+         * Therefore compute the next row step
+         * from current with NO accumulated
+         * column factor applied again.
+         */
         const std::vector<double> row_step =
             compute_row_scales(
                 current,
-                accumulated_columns
+                std::vector<double>(
+                    columns,
+                    1.0
+                )
             );
 
-        for (int i = 0; i < rows; ++i)
+        /*
+         * Apply only the new row step.
+         */
+        for (int i = 0;
+             i < rows;
+             ++i)
         {
             accumulated_rows[i] *=
                 row_step[i];
         }
 
         /*
-            Column equilibration.
+         * Build the row-scaled intermediate
+         * problem before calculating columns.
+         */
+        std::vector<double> current_rows =
+            accumulated_rows;
 
-            Integer and binary columns naturally
-            remain at scale 1.0.
-        */
+        current =
+            build_scaled_problem(
+                problem,
+                current_rows,
+                accumulated_columns
+            );
+
+        /*
+         * Now calculate the incremental column
+         * step from the row-scaled model.
+         */
         const std::vector<double> column_step =
             compute_column_scales(
                 current,
-                row_step
+                std::vector<double>(
+                    rows,
+                    1.0
+                )
             );
 
-        for (int j = 0; j < columns; ++j)
+        for (int j = 0;
+             j < columns;
+             ++j)
         {
             accumulated_columns[j] *=
                 column_step[j];
         }
 
         /*
-            Rebuild an intermediate problem so the
-            next iteration measures the transformed
-            matrix rather than repeatedly measuring
-            the original matrix.
-        */
+         * Build the complete transformed model.
+         */
         current =
             build_scaled_problem(
                 problem,
@@ -458,13 +561,16 @@ ScalingResult GeometricScaler::scale(
                 accumulated_columns
             );
 
-        result.iterations = iteration + 1;
+        result.iterations =
+            iteration + 1;
 
         bool converged = true;
 
         for (double value : row_step)
         {
-            if (!approximately_one(value))
+            if (
+                !approximately_one(value)
+            )
             {
                 converged = false;
                 break;
@@ -475,7 +581,9 @@ ScalingResult GeometricScaler::scale(
         {
             for (double value : column_step)
             {
-                if (!approximately_one(value))
+                if (
+                    !approximately_one(value)
+                )
                 {
                     converged = false;
                     break;
@@ -504,17 +612,23 @@ ScalingResult GeometricScaler::scale(
 
     result.applied = true;
 
-    for (double value : result.row_scale)
+    for (double value :
+         result.row_scale)
     {
-        if (!approximately_one(value))
+        if (
+            !approximately_one(value)
+        )
         {
             ++result.rows_scaled;
         }
     }
 
-    for (double value : result.column_scale)
+    for (double value :
+         result.column_scale)
     {
-        if (!approximately_one(value))
+        if (
+            !approximately_one(value)
+        )
         {
             ++result.columns_scaled;
         }
@@ -526,16 +640,20 @@ ScalingResult GeometricScaler::scale(
     return result;
 }
 
-std::vector<double> ScalingResult::postsolve_values(
+
+std::vector<double>
+ScalingResult::postsolve_values(
     const std::vector<double>& scaled_values
 ) const
 {
-    if (scaled_values.size() !=
-        column_scale.size())
+    if (
+        scaled_values.size() !=
+        column_scale.size()
+    )
     {
         throw std::invalid_argument(
-            "Scaled solution size does not match "
-            "scaling metadata."
+            "Scaled solution size does not "
+            "match scaling metadata."
         );
     }
 
@@ -544,20 +662,27 @@ std::vector<double> ScalingResult::postsolve_values(
         0.0
     );
 
-    for (std::size_t j = 0;
-         j < scaled_values.size();
-         ++j)
+    for (
+        std::size_t j = 0;
+        j < scaled_values.size();
+        ++j
+    )
     {
-        if (std::abs(column_scale[j]) <= EPS)
+        if (
+            std::abs(
+                column_scale[j]
+            ) <= EPS
+        )
         {
             throw std::runtime_error(
-                "Invalid zero column scaling factor."
+                "Invalid zero column "
+                "scaling factor."
             );
         }
 
         /*
-            x = D_c z
-        */
+         * x = D z
+         */
         original_values[j] =
             scaled_values[j] *
             column_scale[j];
@@ -565,5 +690,6 @@ std::vector<double> ScalingResult::postsolve_values(
 
     return original_values;
 }
+
 
 } // namespace dent

@@ -27,8 +27,19 @@ public:
 
     bool has_warm_start() const override;
 
+    /*
+        Expose the basis produced by the latest
+        dual-simplex solve so the next child node
+        can inherit it.
+    */
+    WarmStart last_warm_start() const
+    {
+        return warm_start_;
+    }
+
 private:
     double tolerance_;
+
     int max_iterations_;
 
     mutable WarmStart warm_start_;
