@@ -2,8 +2,8 @@ from fastapi import HTTPException
 
 from api.schemas.model import SolveRequest
 from native.dent_api import DentAPI
-from services.run_service import run_service
 from services.model_validation import validate_solve_request
+from services.run_service import run_service
 
 
 class SolverService:
@@ -22,13 +22,23 @@ class SolverService:
                 ) from exc
         return self._native
 
+    @staticmethod
+    def _raise_normalized(exc: HTTPException, default_code: str):
+        headers = dict(exc.headers or {})
+        headers.setdefault("X-DENT-Error-Code", default_code)
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.detail,
+            headers=headers,
+        ) from exc
+
     def solve(self, request: SolveRequest):
-        validate_solve_request(request)
         try:
+            validate_solve_request(request)
             result = self._get_native().solve(request)
             return run_service.create(result, "json")
-        except HTTPException:
-            raise
+        except HTTPException as exc:
+            self._raise_normalized(exc, "MODEL_VALIDATION_ERROR")
         except ValueError as exc:
             raise HTTPException(
                 status_code=400,
@@ -46,8 +56,8 @@ class SolverService:
         try:
             result = self._get_native().solve_file(data)
             return run_service.create(result, "file", source_name)
-        except HTTPException:
-            raise
+        except HTTPException as exc:
+            self._raise_normalized(exc, "MODEL_FILE_ERROR")
         except ValueError as exc:
             raise HTTPException(
                 status_code=400,
