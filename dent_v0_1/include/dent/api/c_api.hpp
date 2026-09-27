@@ -66,6 +66,26 @@ enum dent_constraint_sense
 
 
 /*
+ * Solver methods.
+ *
+ * DENT_SOLVER_AUTO delegates solver selection to the adaptive
+ * dispatcher. The remaining values request a specific exposed
+ * solver implementation.
+ */
+enum dent_solver_method
+{
+    DENT_SOLVER_AUTO = 0,
+    DENT_SOLVER_PRIMAL_SIMPLEX = 1,
+    DENT_SOLVER_DUAL_SIMPLEX = 2,
+    DENT_SOLVER_INTERIOR_POINT = 3,
+    DENT_SOLVER_PDHG = 4,
+    DENT_SOLVER_PDLP = 5,
+    DENT_SOLVER_QP = 6,
+    DENT_SOLVER_MILP = 7
+};
+
+
+/*
  * Create an empty optimization model.
  *
  * maximize:
@@ -202,6 +222,27 @@ DENT_API const char* dent_model_solve_json(
 
 
 /*
+ * Solve an in-memory model with explicit solver options.
+ *
+ * solver_method:
+ *     one of dent_solver_method.
+ *
+ * tolerance:
+ *     positive numerical tolerance.
+ *
+ * max_iterations:
+ *     positive iteration/node limit. A value <= 0 uses the
+ *     solver's built-in default.
+ */
+DENT_API const char* dent_model_solve_json_with_options(
+    const dent_model_t* model,
+    int solver_method,
+    double tolerance,
+    int max_iterations
+);
+
+
+/*
  * Solve a .dent model file and return its result as JSON.
  *
  * The returned string is allocated by DENT and must be released
@@ -211,6 +252,17 @@ DENT_API const char* dent_model_solve_json(
  */
 DENT_API const char* dent_solve_file_json(
     const char* model_path
+);
+
+
+/*
+ * Solve a .dent model file with explicit solver options.
+ */
+DENT_API const char* dent_solve_file_json_with_options(
+    const char* model_path,
+    int solver_method,
+    double tolerance,
+    int max_iterations
 );
 
 
