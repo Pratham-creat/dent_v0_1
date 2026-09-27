@@ -33,11 +33,21 @@ def initialize_database():
                 objective REAL,
                 solver TEXT,
                 iterations INTEGER,
+                solve_time_ms REAL,
                 message TEXT,
                 result_json TEXT NOT NULL
             )
             """
         )
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(runs)").fetchall()
+        }
+        if "solve_time_ms" not in columns:
+            connection.execute(
+                "ALTER TABLE runs ADD COLUMN solve_time_ms REAL"
+            )
+
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at DESC)"
         )
