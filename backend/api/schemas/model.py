@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -26,8 +26,55 @@ class QuadraticTerm(BaseModel):
     coefficient: float
 
 
+class SolverOptions(BaseModel):
+    method: Literal[
+        "auto",
+        "primal_simplex",
+        "interior_point",
+        "pdhg",
+        "pdlp",
+        "qp",
+        "milp",
+    ] = "auto"
+    tolerance: float = Field(default=0.0, ge=0.0)
+    max_iterations: int = Field(default=0, ge=0)
+
+
 class SolveRequest(BaseModel):
     objective: Literal["minimize", "maximize"] = "minimize"
     variables: list[Variable]
     constraints: list[Constraint] = []
     quadratic_terms: list[QuadraticTerm] = []
+    solver: SolverOptions = Field(default_factory=SolverOptions)
+
+
+class VariableResult(BaseModel):
+    name: str
+    value: float
+
+
+class Fingerprint(BaseModel):
+    variables: int
+    constraints: int
+    nonzeros: int
+    density: float
+    mixed_integer: bool
+    quadratic: bool
+
+
+class SolveResult(BaseModel):
+    status: str
+    objective: float
+    solver: str
+    iterations: int
+    message: str
+    variables: list[VariableResult]
+    fingerprint: Fingerprint
+
+
+class RunResponse(BaseModel):
+    id: str
+    created_at: str
+    source_type: str
+    source_name: str | None = None
+    result: SolveResult
