@@ -1,10 +1,10 @@
-dent_solver_industry_test 1 0.0678238
-dent_interior_point_test 1 0.0716579
-dent_model_parser_test 1 0.095081
-dent_scaling_test 1 0.0680615
-dent_milp_branching_test 1 0.0750559
-dent_pdhg_test 1 0.107799
-dent_pdlp_test 1 0.123505
-dent_dispatcher_test 1 0.0992727
-dent_solution_validator_test 1 0.0774156
+dent_solver_industry_test 2 0.0117825
+dent_interior_point_test 2 0.00843685
+dent_model_parser_test 2 0.0182793
+dent_scaling_test 2 0.00946775
+dent_milp_branching_test 2 0.01013
+dent_pdhg_test 2 0.0098753
+dent_pdlp_test 2 0.0216741
+dent_dispatcher_test 2 0.0214122
+dent_solution_validator_test 2 0.0261087
 ---

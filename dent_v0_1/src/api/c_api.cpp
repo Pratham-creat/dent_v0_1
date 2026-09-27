@@ -1,11 +1,12 @@
-#if defined(_WIN32) && !defined(DENT_EXPORTS)
-#define DENT_EXPORTS
+#ifndef DENT_BUILDING_DLL
+#define DENT_BUILDING_DLL
 #endif
 
 #include "dent/api/c_api.hpp"
 
 #include "dent/dispatch/dispatcher.hpp"
 #include "dent/dispatch/fingerprint.hpp"
+#include "dent/io/model_parser.hpp"
 #include "dent/io/model_parser.hpp"
 #include "dent/model/problem.hpp"
 #include "dent/solver/interior_point.hpp"
@@ -16,14 +17,76 @@
 #include "dent/solver/simplex.hpp"
 
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
+
+
+/*
+ * ============================================================
+ * Internal model handle
+ * ============================================================
+ */
+
+struct dent_model_t
+{
+    explicit dent_model_t(
+        dent::ObjectiveSense sense
+    )
+        : problem(sense)
+    {
+    }
+
+    dent::Problem problem;
+};
+
+
+/*
+ * ============================================================
+ * Thread-local error storage
+ * ============================================================
+ */
 
 namespace
 {
+
+thread_local std::string g_last_error;
+
+
+void clear_error()
+{
+    g_last_error.clear();
+}
+
+
+void set_error(
+    const std::string& message
+)
+{
+    g_last_error = message;
+}
+
+
+void set_error(
+    const char* message
+)
+{
+    g_last_error =
+        message != nullptr
+            ? message
+            : "Unknown DENT API error.";
+}
+
+
+/*
+ * ============================================================
+ * JSON helpers
+ * ============================================================
+ */
 
 std::string json_escape(
     const std::string& value
@@ -98,6 +161,12 @@ const char* status_name(
 }
 
 
+/*
+ * ============================================================
+ * Internal solve result
+ * ============================================================
+ */
+
 struct InternalResult
 {
     dent::SolveStatus status =
@@ -116,6 +185,12 @@ struct InternalResult
     std::string message;
 };
 
+
+/*
+ * ============================================================
+ * Dispatcher + solver bridge
+ * ============================================================
+ */
 
 InternalResult solve_problem(
     const dent::Problem& problem
@@ -331,6 +406,12 @@ InternalResult solve_problem(
 }
 
 
+/*
+ * ============================================================
+ * JSON serialization
+ * ============================================================
+ */
+
 std::string make_json(
     const dent::Problem& problem,
     const InternalResult& result
@@ -347,6 +428,7 @@ std::string make_json(
 
     output << "{";
 
+
     output
         << "\"status\":\""
         << status_name(
@@ -354,10 +436,12 @@ std::string make_json(
            )
         << "\",";
 
+
     output
         << "\"objective\":"
         << result.objective
         << ",";
+
 
     output
         << "\"solver\":\""
@@ -366,10 +450,12 @@ std::string make_json(
            )
         << "\",";
 
+
     output
         << "\"iterations\":"
         << result.iterations
         << ",";
+
 
     output
         << "\"message\":\""
@@ -404,6 +490,7 @@ std::string make_json(
 
         output << "{";
 
+
         output
             << "\"name\":\""
             << json_escape(
@@ -411,9 +498,11 @@ std::string make_json(
                )
             << "\",";
 
+
         output
             << "\"value\":"
             << value;
+
 
         output << "}";
     }
@@ -428,25 +517,30 @@ std::string make_json(
     output
         << "\"fingerprint\":{";
 
+
     output
         << "\"variables\":"
         << fingerprint.variables
         << ",";
+
 
     output
         << "\"constraints\":"
         << fingerprint.constraints
         << ",";
 
+
     output
         << "\"nonzeros\":"
         << fingerprint.nonzeros
         << ",";
 
+
     output
         << "\"density\":"
         << fingerprint.density
         << ",";
+
 
     output
         << "\"mixed_integer\":"
@@ -457,6 +551,7 @@ std::string make_json(
         )
         << ",";
 
+
     output
         << "\"quadratic\":"
         << (
@@ -465,6 +560,7 @@ std::string make_json(
                 : "false"
         );
 
+
     output << "}";
 
     output << "}";
@@ -472,19 +568,676 @@ std::string make_json(
     return output.str();
 }
 
+
+/*
+ * ============================================================
+ * JSON allocation
+ * ============================================================
+ */
+
+const char* allocate_json(
+    const std::string& json
+)
+{
+    const std::size_t size =
+        json.size() + 1;
+
+    char* buffer =
+        static_cast<char*>(
+            std::malloc(
+                size
+            )
+        );
+
+    if (buffer == nullptr)
+    {
+        set_error(
+            "DENT API could not allocate the JSON result."
+        );
+
+        return nullptr;
+    }
+
+    std::memcpy(
+        buffer,
+        json.c_str(),
+        size
+    );
+
+    return buffer;
+}
+
+
+/*
+ * ============================================================
+ * Validation helpers
+ * ============================================================
+ */
+
+bool valid_model(
+    const dent_model_t* model
+)
+{
+    if (model == nullptr)
+    {
+        set_error(
+            "DENT model handle is null."
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+bool valid_name(
+    const char* name
+)
+{
+    if (
+        name == nullptr ||
+        *name == '\0'
+    )
+    {
+        set_error(
+            "DENT model name cannot be null or empty."
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+bool valid_variable_type(
+    int variable_type
+)
+{
+    if (
+        variable_type != DENT_VARIABLE_CONTINUOUS &&
+        variable_type != DENT_VARIABLE_INTEGER &&
+        variable_type != DENT_VARIABLE_BINARY
+    )
+    {
+        set_error(
+            "Invalid DENT variable type."
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+bool valid_constraint_sense(
+    int constraint_sense
+)
+{
+    if (
+        constraint_sense != DENT_CONSTRAINT_LESS_EQUAL &&
+        constraint_sense != DENT_CONSTRAINT_EQUAL &&
+        constraint_sense != DENT_CONSTRAINT_GREATER_EQUAL
+    )
+    {
+        set_error(
+            "Invalid DENT constraint sense."
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+dent::VariableType convert_variable_type(
+    int variable_type
+)
+{
+    switch (variable_type)
+    {
+        case DENT_VARIABLE_INTEGER:
+            return dent::VariableType::Integer;
+
+        case DENT_VARIABLE_BINARY:
+            return dent::VariableType::Binary;
+
+        case DENT_VARIABLE_CONTINUOUS:
+        default:
+            return dent::VariableType::Continuous;
+    }
+}
+
+
+dent::ConstraintSense convert_constraint_sense(
+    int constraint_sense
+)
+{
+    switch (constraint_sense)
+    {
+        case DENT_CONSTRAINT_EQUAL:
+            return dent::ConstraintSense::Equal;
+
+        case DENT_CONSTRAINT_GREATER_EQUAL:
+            return dent::ConstraintSense::GreaterEqual;
+
+        case DENT_CONSTRAINT_LESS_EQUAL:
+        default:
+            return dent::ConstraintSense::LessEqual;
+    }
+}
+
 } // namespace
 
 
-extern "C" const char*
-dent_solve_file_json(
+/*
+ * ============================================================
+ * Public C API
+ * ============================================================
+ */
+
+extern "C" DENT_API dent_model_t*
+dent_model_create(
+    int maximize
+)
+{
+    clear_error();
+
+    try
+    {
+        return new dent_model_t(
+            maximize
+                ? dent::ObjectiveSense::Maximize
+                : dent::ObjectiveSense::Minimize
+        );
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return nullptr;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error creating DENT model."
+        );
+
+        return nullptr;
+    }
+}
+
+
+extern "C" DENT_API dent_model_t*
+dent_model_create_from_file(
     const char* model_path
 )
 {
+    clear_error();
+
     if (
         model_path == nullptr ||
         *model_path == '\0'
     )
     {
+        set_error(
+            "DENT model path cannot be null or empty."
+        );
+
+        return nullptr;
+    }
+
+    try
+    {
+        dent::Problem problem =
+            dent::ModelParser::parse_file(
+                model_path
+            );
+
+        dent_model_t* model =
+            new dent_model_t(
+                problem.objective_sense()
+            );
+
+        model->problem =
+            std::move(
+                problem
+            );
+
+        return model;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return nullptr;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error parsing DENT model file."
+        );
+
+        return nullptr;
+    }
+}
+
+
+extern "C" DENT_API void
+dent_model_destroy(
+    dent_model_t* model
+)
+{
+    clear_error();
+
+    delete model;
+}
+
+
+extern "C" DENT_API int
+dent_model_add_variable(
+    dent_model_t* model,
+    const char* name,
+    double lower_bound,
+    double upper_bound,
+    int variable_type
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    if (!valid_name(name))
+    {
+        return -1;
+    }
+
+    if (!valid_variable_type(variable_type))
+    {
+        return -1;
+    }
+
+    try
+    {
+        return model->problem.add_variable(
+            name,
+            lower_bound,
+            upper_bound,
+            convert_variable_type(
+                variable_type
+            )
+        );
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error adding DENT variable."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_add_constraint(
+    dent_model_t* model,
+    const char* name,
+    int constraint_sense,
+    double rhs
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    if (!valid_name(name))
+    {
+        return -1;
+    }
+
+    if (!valid_constraint_sense(constraint_sense))
+    {
+        return -1;
+    }
+
+    try
+    {
+        return model->problem.add_constraint(
+            name,
+            convert_constraint_sense(
+                constraint_sense
+            ),
+            rhs
+        );
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error adding DENT constraint."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_set_objective_coefficient(
+    dent_model_t* model,
+    int variable,
+    double coefficient
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    try
+    {
+        model->problem.set_objective_coefficient(
+            variable,
+            coefficient
+        );
+
+        return 0;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error setting DENT objective coefficient."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_set_constraint_coefficient(
+    dent_model_t* model,
+    int constraint,
+    int variable,
+    double coefficient
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    try
+    {
+        model->problem.set_constraint_coefficient(
+            constraint,
+            variable,
+            coefficient
+        );
+
+        return 0;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error setting DENT constraint coefficient."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_set_quadratic_coefficient(
+    dent_model_t* model,
+    int row_variable,
+    int column_variable,
+    double coefficient
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    try
+    {
+        model->problem.set_quadratic_coefficient(
+            row_variable,
+            column_variable,
+            coefficient
+        );
+
+        return 0;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error setting DENT quadratic coefficient."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_set_variable_type(
+    dent_model_t* model,
+    int variable,
+    int variable_type
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    if (!valid_variable_type(variable_type))
+    {
+        return -1;
+    }
+
+    try
+    {
+        model->problem.set_variable_type(
+            variable,
+            convert_variable_type(
+                variable_type
+            )
+        );
+
+        return 0;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error setting DENT variable type."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API int
+dent_model_set_variable_bounds(
+    dent_model_t* model,
+    int variable,
+    double lower_bound,
+    double upper_bound
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return -1;
+    }
+
+    try
+    {
+        model->problem.set_variable_bounds(
+            variable,
+            lower_bound,
+            upper_bound
+        );
+
+        return 0;
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return -1;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error setting DENT variable bounds."
+        );
+
+        return -1;
+    }
+}
+
+
+extern "C" DENT_API const char*
+dent_model_solve_json(
+    const dent_model_t* model
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return nullptr;
+    }
+
+    try
+    {
+        const InternalResult result =
+            solve_problem(
+                model->problem
+            );
+
+        const std::string json =
+            make_json(
+                model->problem,
+                result
+            );
+
+        return allocate_json(
+            json
+        );
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
+        );
+
+        return nullptr;
+    }
+    catch (...)
+    {
+        set_error(
+            "Unknown error solving DENT model."
+        );
+
+        return nullptr;
+    }
+}
+
+
+extern "C" DENT_API const char*
+dent_solve_file_json(
+    const char* model_path
+)
+{
+    clear_error();
+
+    if (
+        model_path == nullptr ||
+        *model_path == '\0'
+    )
+    {
+        set_error(
+            "DENT model path cannot be null or empty."
+        );
+
         return nullptr;
     }
 
@@ -506,37 +1259,39 @@ dent_solve_file_json(
                 result
             );
 
-        const std::size_t size =
-            json.size() + 1;
-
-        char* buffer =
-            static_cast<char*>(
-                std::malloc(
-                    size
-                )
-            );
-
-        if (buffer == nullptr)
-        {
-            return nullptr;
-        }
-
-        std::memcpy(
-            buffer,
-            json.c_str(),
-            size
+        return allocate_json(
+            json
+        );
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(
+            exception.what()
         );
 
-        return buffer;
+        return nullptr;
     }
     catch (...)
     {
+        set_error(
+            "Unknown error solving DENT model file."
+        );
+
         return nullptr;
     }
 }
 
 
-extern "C" void
+extern "C" DENT_API const char*
+dent_last_error(
+    void
+)
+{
+    return g_last_error.c_str();
+}
+
+
+extern "C" DENT_API void
 dent_free_string(
     const char* value
 )
