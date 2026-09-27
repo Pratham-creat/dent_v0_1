@@ -13,8 +13,8 @@ class RunRepository:
                 """
                 INSERT INTO runs (
                     id, created_at, source_type, source_name, status,
-                    objective, solver, iterations, message, result_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    objective, solver, iterations, solve_time_ms, message, result_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run["id"],
@@ -25,6 +25,7 @@ class RunRepository:
                     run["result"].get("objective"),
                     run["result"].get("solver"),
                     run["result"].get("iterations"),
+                    run["result"].get("solve_time_ms"),
                     run["result"].get("message"),
                     json.dumps(run["result"]),
                 ),
@@ -37,7 +38,7 @@ class RunRepository:
             rows = connection.execute(
                 """
                 SELECT id, created_at, source_type, source_name, status,
-                       objective, solver, iterations, message
+                       objective, solver, iterations, solve_time_ms, message
                 FROM runs
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
