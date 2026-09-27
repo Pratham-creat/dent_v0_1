@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from services.run_service import run_service
 
@@ -18,9 +18,22 @@ def list_runs(
     }
 
 
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+def clear_runs():
+    run_service.clear()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/{run_id}")
 def get_run(run_id: str):
     run = run_service.get(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return run
+
+
+@router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_run(run_id: str):
+    if not run_service.delete(run_id):
+        raise HTTPException(status_code=404, detail="Run not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
