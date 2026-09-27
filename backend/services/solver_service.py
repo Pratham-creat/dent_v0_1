@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from api.schemas.model import SolveRequest
 from native.dent_api import DentAPI
 from services.run_service import run_service
+from services.model_validation import validate_solve_request
 
 
 class SolverService:
@@ -18,6 +19,7 @@ class SolverService:
         return self._native
 
     def solve(self, request: SolveRequest):
+        validate_solve_request(request)
         try:
             result = self._get_native().solve(request)
             return run_service.create(result, "json")
