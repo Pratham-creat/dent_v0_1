@@ -374,12 +374,6 @@ target_link_libraries(
         dent_core
 )
 
-set_tests_properties(
-    dent_benchmark
-    PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
 
 # ------------------------------------------------------------
 # Solver comparison
