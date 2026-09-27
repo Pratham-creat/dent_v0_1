@@ -36,6 +36,7 @@ class SolverService:
         try:
             validate_solve_request(request)
             result = self._get_native().solve(request)
+            result["configuration"] = request.solver.model_dump()
             return run_service.create(result, "json")
         except HTTPException as exc:
             self._raise_normalized(exc, "MODEL_VALIDATION_ERROR")
@@ -55,6 +56,8 @@ class SolverService:
     def solve_file(self, data: bytes, source_name=None, options=None):
         try:
             result = self._get_native().solve_file(data, options)
+            if options is not None:
+                result["configuration"] = options.model_dump()
             return run_service.create(result, "file", source_name)
         except HTTPException as exc:
             self._raise_normalized(exc, "MODEL_FILE_ERROR")
