@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(dent VERSION 0.10.0 LANGUAGES CXX)
+project(dent VERSION 0.11.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,6 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(
     dent_core
+    STATIC
 
     src/model/problem.cpp
 
@@ -46,6 +47,49 @@ target_include_directories(
     dent_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+
+# ============================================================
+# PUBLIC C API
+# ============================================================
+
+add_library(
+    dent_api
+    SHARED
+
+    src/api/c_api.cpp
+)
+
+
+target_include_directories(
+    dent_api
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+
+target_link_libraries(
+    dent_api
+    PRIVATE
+        dent_core
+)
+
+
+target_compile_definitions(
+    dent_api
+    PRIVATE
+        DENT_BUILDING_DLL
+)
+
+
+set_target_properties(
+    dent_api
+    PROPERTIES
+        OUTPUT_NAME "dent_api"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>"
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>"
 )
 
 
@@ -92,6 +136,12 @@ add_test(
     COMMAND dent_solver_industry_test
 )
 
+set_tests_properties(
+    dent_solver_industry_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 
 # ------------------------------------------------------------
 # Interior Point
@@ -111,6 +161,12 @@ target_link_libraries(
 add_test(
     NAME dent_interior_point_test
     COMMAND dent_interior_point_test
+)
+
+set_tests_properties(
+    dent_interior_point_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 
@@ -134,6 +190,12 @@ add_test(
     COMMAND dent_model_parser_test
 )
 
+set_tests_properties(
+    dent_model_parser_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 
 # ------------------------------------------------------------
 # Scaling
@@ -153,6 +215,12 @@ target_link_libraries(
 add_test(
     NAME dent_scaling_test
     COMMAND dent_scaling_test
+)
+
+set_tests_properties(
+    dent_scaling_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 
@@ -176,6 +244,12 @@ add_test(
     COMMAND dent_milp_branching_test
 )
 
+set_tests_properties(
+    dent_milp_branching_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 
 # ------------------------------------------------------------
 # PDHG
@@ -195,6 +269,12 @@ target_link_libraries(
 add_test(
     NAME dent_pdhg_test
     COMMAND dent_pdhg_test
+)
+
+set_tests_properties(
+    dent_pdhg_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 
@@ -218,6 +298,12 @@ add_test(
     COMMAND dent_pdlp_test
 )
 
+set_tests_properties(
+    dent_pdlp_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 
 # ------------------------------------------------------------
 # Adaptive dispatcher
@@ -237,6 +323,12 @@ target_link_libraries(
 add_test(
     NAME dent_dispatcher_test
     COMMAND dent_dispatcher_test
+)
+
+set_tests_properties(
+    dent_dispatcher_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 
@@ -260,6 +352,12 @@ add_test(
     COMMAND dent_solution_validator_test
 )
 
+set_tests_properties(
+    dent_solution_validator_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 
 # ============================================================
 # BENCHMARK RUNNER
@@ -276,17 +374,70 @@ target_link_libraries(
         dent_core
 )
 
+set_tests_properties(
+    dent_benchmark
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
-add_executable(dent_solver_comparison
+
+# ------------------------------------------------------------
+# Solver comparison
+# ------------------------------------------------------------
+
+add_executable(
+    dent_solver_comparison
     tests/benchmark/solver_comparison.cpp
 )
 
-target_link_libraries(dent_solver_comparison
+target_link_libraries(
+    dent_solver_comparison
     PRIVATE
         dent_core
 )
 
-target_include_directories(dent_solver_comparison
+target_include_directories(
+    dent_solver_comparison
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+
+
+# ============================================================
+# COPY API DLL BESIDE EXECUTABLES
+# ============================================================
+
+add_custom_command(
+    TARGET dent
+    POST_BUILD
+    COMMAND
+        ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:dent_api>"
+        "$<TARGET_FILE_DIR:dent>"
+)
+
+
+foreach(test_target
+    dent_solver_industry_test
+    dent_interior_point_test
+    dent_model_parser_test
+    dent_scaling_test
+    dent_milp_branching_test
+    dent_pdhg_test
+    dent_pdlp_test
+    dent_dispatcher_test
+    dent_solution_validator_test
+    dent_benchmark
+    dent_solver_comparison
+)
+
+    add_custom_command(
+        TARGET ${test_target}
+        POST_BUILD
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:dent_api>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+    )
+
+endforeach()
