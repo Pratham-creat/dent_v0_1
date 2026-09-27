@@ -193,7 +193,10 @@ struct InternalResult
  */
 
 InternalResult solve_problem(
-    const dent::Problem& problem
+    const dent::Problem& problem,
+    int solver_method = DENT_SOLVER_AUTO,
+    double tolerance = 0.0,
+    int max_iterations = 0
 )
 {
     const dent::ProblemFingerprint fingerprint =
@@ -201,25 +204,84 @@ InternalResult solve_problem(
             problem
         );
 
-    const dent::AdaptiveDispatcher dispatcher;
+    dent::SolverMethod method =
+        dent::SolverMethod::Unsupported;
 
-    const dent::DispatchDecision decision =
-        dispatcher.dispatch(
-            problem,
-            fingerprint
-        );
+    std::string solver_name;
+
+    if (solver_method == DENT_SOLVER_AUTO)
+    {
+        const dent::AdaptiveDispatcher dispatcher;
+
+        const dent::DispatchDecision decision =
+            dispatcher.dispatch(
+                problem,
+                fingerprint
+            );
+
+        method = decision.method;
+        solver_name = decision.solver_name;
+    }
+    else
+    {
+        switch (solver_method)
+        {
+            case DENT_SOLVER_PRIMAL_SIMPLEX:
+                method = dent::SolverMethod::PrimalSimplex;
+                solver_name = "Primal Simplex";
+                break;
+
+            case DENT_SOLVER_DUAL_SIMPLEX:
+                method = dent::SolverMethod::DualSimplex;
+                solver_name = "Dual Simplex";
+                break;
+
+            case DENT_SOLVER_INTERIOR_POINT:
+                method = dent::SolverMethod::InteriorPoint;
+                solver_name = "Interior Point";
+                break;
+
+            case DENT_SOLVER_PDHG:
+                method = dent::SolverMethod::PDHG;
+                solver_name = "PDHG";
+                break;
+
+            case DENT_SOLVER_PDLP:
+                method = dent::SolverMethod::PDLP;
+                solver_name = "PDLP";
+                break;
+
+            case DENT_SOLVER_QP:
+                method = dent::SolverMethod::QP;
+                solver_name = "QP";
+                break;
+
+            case DENT_SOLVER_MILP:
+                method = dent::SolverMethod::MILP;
+                solver_name = "MILP";
+                break;
+
+            default:
+                throw std::invalid_argument(
+                    "Invalid DENT solver method."
+                );
+        }
+    }
 
     InternalResult result;
 
     result.solver =
-        decision.solver_name;
+        solver_name;
 
 
-    switch (decision.method)
+    switch (method)
     {
         case dent::SolverMethod::PrimalSimplex:
         {
-            dent::SimplexSolver solver;
+            dent::SimplexSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-9,
+                max_iterations > 0 ? max_iterations : 10000
+            );
 
             const dent::SolveResult solved =
                 solver.solve(
@@ -247,7 +309,10 @@ InternalResult solve_problem(
 
         case dent::SolverMethod::InteriorPoint:
         {
-            dent::InteriorPointSolver solver;
+            dent::InteriorPointSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-8,
+                max_iterations > 0 ? max_iterations : 100
+            );
 
             const dent::SolveResult solved =
                 solver.solve(
@@ -275,7 +340,10 @@ InternalResult solve_problem(
 
         case dent::SolverMethod::PDHG:
         {
-            dent::PDHGSolver solver;
+            dent::PDHGSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-7,
+                max_iterations > 0 ? max_iterations : 10000
+            );
 
             const dent::SolveResult solved =
                 solver.solve(
@@ -303,7 +371,10 @@ InternalResult solve_problem(
 
         case dent::SolverMethod::PDLP:
         {
-            dent::PDLPSolver solver;
+            dent::PDLPSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-7,
+                max_iterations > 0 ? max_iterations : 20000
+            );
 
             const dent::SolveResult solved =
                 solver.solve(
@@ -331,7 +402,10 @@ InternalResult solve_problem(
 
         case dent::SolverMethod::QP:
         {
-            dent::QPSolver solver;
+            dent::QPSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-8,
+                max_iterations > 0 ? max_iterations : 10000
+            );
 
             const dent::QPSolution solved =
                 solver.solve(
@@ -359,7 +433,10 @@ InternalResult solve_problem(
 
         case dent::SolverMethod::MILP:
         {
-            dent::MILPSolver solver;
+            dent::MILPSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-9,
+                max_iterations > 0 ? max_iterations : 1000
+            );
 
             const dent::MILPSolution solved =
                 solver.solve(
@@ -393,9 +470,8 @@ InternalResult solve_problem(
                 dent::SolveStatus::Unsupported;
 
             result.message =
-                "The adaptive dispatcher selected "
-                "a solver that is not exposed by "
-                "the current public API.";
+                "The requested solver is not exposed by "
+                "the current native solve bridge.";
 
             break;
         }
@@ -1223,6 +1299,64 @@ dent_model_solve_json(
 
 
 extern "C" DENT_API const char*
+dent_model_solve_json_with_options(
+    const dent_model_t* model,
+    int solver_method,
+    double tolerance,
+    int max_iterations
+)
+{
+    clear_error();
+
+    if (!valid_model(model))
+    {
+        return nullptr;
+    }
+
+    if (tolerance < 0.0)
+    {
+        set_error("DENT solver tolerance cannot be negative.");
+        return nullptr;
+    }
+
+    if (max_iterations < 0)
+    {
+        set_error("DENT solver iteration limit cannot be negative.");
+        return nullptr;
+    }
+
+    try
+    {
+        const InternalResult result =
+            solve_problem(
+                model->problem,
+                solver_method,
+                tolerance,
+                max_iterations
+            );
+
+        const std::string json =
+            make_json(
+                model->problem,
+                result
+            );
+
+        return allocate_json(json);
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(exception.what());
+        return nullptr;
+    }
+    catch (...)
+    {
+        set_error("Unknown error solving DENT model.");
+        return nullptr;
+    }
+}
+
+
+extern "C" DENT_API const char*
 dent_solve_file_json(
     const char* model_path
 )
@@ -1277,6 +1411,65 @@ dent_solve_file_json(
             "Unknown error solving DENT model file."
         );
 
+        return nullptr;
+    }
+}
+
+
+extern "C" DENT_API const char*
+dent_solve_file_json_with_options(
+    const char* model_path,
+    int solver_method,
+    double tolerance,
+    int max_iterations
+)
+{
+    clear_error();
+
+    if (model_path == nullptr || *model_path == '\0')
+    {
+        set_error("DENT model path cannot be null or empty.");
+        return nullptr;
+    }
+
+    if (tolerance < 0.0)
+    {
+        set_error("DENT solver tolerance cannot be negative.");
+        return nullptr;
+    }
+
+    if (max_iterations < 0)
+    {
+        set_error("DENT solver iteration limit cannot be negative.");
+        return nullptr;
+    }
+
+    try
+    {
+        const dent::Problem problem =
+            dent::ModelParser::parse_file(model_path);
+
+        const InternalResult result =
+            solve_problem(
+                problem,
+                solver_method,
+                tolerance,
+                max_iterations
+            );
+
+        const std::string json =
+            make_json(problem, result);
+
+        return allocate_json(json);
+    }
+    catch (const std::exception& exception)
+    {
+        set_error(exception.what());
+        return nullptr;
+    }
+    catch (...)
+    {
+        set_error("Unknown error solving DENT model file.");
         return nullptr;
     }
 }
