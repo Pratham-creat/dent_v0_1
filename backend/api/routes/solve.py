@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from api.schemas.errors import ErrorResponse
-from api.schemas.model import SolveRequest
+from api.schemas.model import RunResponse, SolveRequest, SolverOptions
 from services.solver_service import solver_service
 
 
@@ -17,13 +17,26 @@ ERROR_RESPONSES = {
 }
 
 
-@router.post("/solve", responses=ERROR_RESPONSES)
+@router.post(
+    "/solve",
+    response_model=RunResponse,
+    responses=ERROR_RESPONSES,
+)
 def solve(request: SolveRequest):
     return solver_service.solve(request)
 
 
-@router.post("/solve-file", responses=ERROR_RESPONSES)
-async def solve_file(file: UploadFile = File(...)):
+@router.post(
+    "/solve-file",
+    response_model=RunResponse,
+    responses=ERROR_RESPONSES,
+)
+async def solve_file(
+    file: UploadFile = File(...),
+    method: str = Query("auto"),
+    tolerance: float = Query(0.0, ge=0.0),
+    max_iterations: int = Query(0, ge=0),
+):
     if not file.filename or Path(file.filename).suffix.lower() != ".dent":
         raise HTTPException(
             400,
@@ -31,4 +44,21 @@ async def solve_file(file: UploadFile = File(...)):
             headers={"X-DENT-Error-Code": "INVALID_FILE_TYPE"},
         )
 
-    return solver_service.solve_file(await file.read(), file.filename)
+    try:
+        options = SolverOptions(
+            method=method,
+            tolerance=tolerance,
+            max_iterations=max_iterations,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+            headers={"X-DENT-Error-Code": "INVALID_SOLVER_OPTIONS"},
+        ) from exc
+
+    return solver_service.solve_file(
+        await file.read(),
+        file.filename,
+        options,
+    )
