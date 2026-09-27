@@ -52,9 +52,9 @@ class SolverService:
                 headers={"X-DENT-Error-Code": "SOLVER_RUNTIME_ERROR"},
             ) from exc
 
-    def solve_file(self, data: bytes, source_name=None):
+    def solve_file(self, data: bytes, source_name=None, options=None):
         try:
-            result = self._get_native().solve_file(data, None)
+            result = self._get_native().solve_file(data, options)
             return run_service.create(result, "file", source_name)
         except HTTPException as exc:
             self._raise_normalized(exc, "MODEL_FILE_ERROR")
