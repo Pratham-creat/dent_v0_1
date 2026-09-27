@@ -3,6 +3,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class ErrorResponse(BaseModel):
+    detail: str
+
+
 class Variable(BaseModel):
     name: str
     lower_bound: float = 0.0
