@@ -27,5 +27,8 @@ class RunService:
     def clear(self):
         return run_repository.clear()
 
+    def telemetry(self):
+        return run_repository.telemetry()
+
 
 run_service = RunService()
