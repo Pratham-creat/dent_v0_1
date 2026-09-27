@@ -3,7 +3,8 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from api.schemas.errors import ErrorResponse
-from api.schemas.model import RunResponse, SolveRequest, SolverOptions
+from api.schemas.model import BenchmarkRequest, RunResponse, SolveRequest, SolverOptions
+from services.benchmark_service import benchmark_service
 from services.solver_service import solver_service
 
 
