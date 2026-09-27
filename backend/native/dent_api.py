@@ -97,8 +97,24 @@ class DentAPI:
         library.dent_model_solve_json.argtypes = [ctypes.c_void_p]
         library.dent_model_solve_json.restype = ctypes.c_void_p
 
+        library.dent_model_solve_json_with_options.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_double,
+            ctypes.c_int,
+        ]
+        library.dent_model_solve_json_with_options.restype = ctypes.c_void_p
+
         library.dent_solve_file_json.argtypes = [ctypes.c_char_p]
         library.dent_solve_file_json.restype = ctypes.c_void_p
+
+        library.dent_solve_file_json_with_options.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_double,
+            ctypes.c_int,
+        ]
+        library.dent_solve_file_json_with_options.restype = ctypes.c_void_p
 
         library.dent_last_error.restype = ctypes.c_char_p
         library.dent_free_string.argtypes = [ctypes.c_void_p]
@@ -116,6 +132,18 @@ class DentAPI:
             return json.loads(raw.decode("utf-8"))
         finally:
             self.lib.dent_free_string(pointer)
+
+    @staticmethod
+    def _solver_method(method):
+        return {
+            "auto": 0,
+            "primal_simplex": 1,
+            "interior_point": 3,
+            "pdhg": 4,
+            "pdlp": 5,
+            "qp": 6,
+            "milp": 7,
+        }[method]
 
     def solve(self, request):
         model = self.lib.dent_model_create(
@@ -182,19 +210,37 @@ class DentAPI:
                 ):
                     raise RuntimeError(self.error())
 
-            return self._decode(self.lib.dent_model_solve_json(model))
+            options = request.solver
+            return self._decode(
+                self.lib.dent_model_solve_json_with_options(
+                    model,
+                    self._solver_method(options.method),
+                    options.tolerance,
+                    options.max_iterations,
+                )
+            )
         finally:
             self.lib.dent_model_destroy(model)
 
-    def solve_file(self, data):
+    def solve_file(self, data, options=None):
         path = None
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".dent") as file:
                 file.write(data)
                 path = file.name
 
+            if options is None:
+                return self._decode(
+                    self.lib.dent_solve_file_json(path.encode())
+                )
+
             return self._decode(
-                self.lib.dent_solve_file_json(path.encode())
+                self.lib.dent_solve_file_json_with_options(
+                    path.encode(),
+                    self._solver_method(options.method),
+                    options.tolerance,
+                    options.max_iterations,
+                )
             )
         finally:
             if path:
