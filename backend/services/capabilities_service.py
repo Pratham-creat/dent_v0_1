@@ -35,6 +35,27 @@ class CapabilitiesService:
                 "formats": ["JSON", ".dent"],
                 "transport": "REST/JSON",
             },
+            "solver_configuration": {
+                "methods": [
+                    "auto",
+                    "primal_simplex",
+                    "interior_point",
+                    "pdhg",
+                    "pdlp",
+                    "qp",
+                    "milp",
+                ],
+                "tolerance": {
+                    "default": 0.0,
+                    "minimum": 0.0,
+                    "meaning": "0 uses the solver default.",
+                },
+                "max_iterations": {
+                    "default": 0,
+                    "minimum": 0,
+                    "meaning": "0 uses the solver default; for MILP this controls the node limit.",
+                },
+            },
             "output": {
                 "format": "JSON",
                 "includes": [
