@@ -73,3 +73,37 @@ class RunRepository:
             cursor = connection.execute("DELETE FROM runs")
             connection.commit()
         return cursor.rowcount
+
+
+    def telemetry(self):
+        with get_connection() as connection:
+            summary = connection.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_runs,
+                    SUM(CASE WHEN status = 'optimal' THEN 1 ELSE 0 END) AS optimal_runs,
+                    AVG(solve_time_ms) AS average_solve_time_ms,
+                    MIN(solve_time_ms) AS minimum_solve_time_ms,
+                    MAX(solve_time_ms) AS maximum_solve_time_ms,
+                    AVG(iterations) AS average_iterations,
+                    SUM(CASE WHEN source_type = 'json' THEN 1 ELSE 0 END) AS json_runs,
+                    SUM(CASE WHEN source_type = 'file' THEN 1 ELSE 0 END) AS file_runs
+                FROM runs
+                """
+            ).fetchone()
+
+            solvers = connection.execute(
+                """
+                SELECT solver, COUNT(*) AS runs, AVG(solve_time_ms) AS average_solve_time_ms,
+                       AVG(iterations) AS average_iterations
+                FROM runs
+                WHERE solver IS NOT NULL
+                GROUP BY solver
+                ORDER BY runs DESC, solver ASC
+                """
+            ).fetchall()
+
+        return {
+            "summary": dict(summary),
+            "by_solver": [dict(row) for row in solvers],
+        }
