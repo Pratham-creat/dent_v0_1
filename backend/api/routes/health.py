@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from services.capabilities_service import capabilities_service
 from services.solver_service import solver_service
 
 
@@ -13,16 +14,4 @@ def health():
 
 @router.get("/api/v1/capabilities")
 def capabilities():
-    return {
-        "engine": "DENT Optimization Engine",
-        "problem_classes": ["LP", "MILP", "QP"],
-        "solvers": [
-            "PrimalSimplex",
-            "InteriorPoint",
-            "PDHG",
-            "PDLP",
-            "QP",
-            "MILP",
-        ],
-        "transport": "REST/JSON",
-    }
+    return capabilities_service.get()
