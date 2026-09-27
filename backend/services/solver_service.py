@@ -1,3 +1,5 @@
+from time import perf_counter
+
 from fastapi import HTTPException
 
 from api.schemas.model import SolveRequest
@@ -35,7 +37,9 @@ class SolverService:
     def solve(self, request: SolveRequest):
         try:
             validate_solve_request(request)
+            started = perf_counter()
             result = self._get_native().solve(request)
+            result["solve_time_ms"] = round((perf_counter() - started) * 1000.0, 3)
             result["configuration"] = request.solver.model_dump()
             return run_service.create(result, "json")
         except HTTPException as exc:
@@ -55,7 +59,9 @@ class SolverService:
 
     def solve_file(self, data: bytes, source_name=None, options=None):
         try:
+            started = perf_counter()
             result = self._get_native().solve_file(data, options)
+            result["solve_time_ms"] = round((perf_counter() - started) * 1000.0, 3)
             if options is not None:
                 result["configuration"] = options.model_dump()
             return run_service.create(result, "file", source_name)
