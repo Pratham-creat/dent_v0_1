@@ -6,7 +6,7 @@ from api.routes.runs import router as runs_router
 from api.routes.solve import router as solve_router
 
 
-app = FastAPI(title="DENT Optimization Engine API", version="0.1.0")
+app = FastAPI(title="DENT Optimization Engine API", version="0.11.0")
 
 app.add_middleware(
     CORSMiddleware,
