@@ -14,8 +14,12 @@ class SolverService:
         if self._native is None:
             try:
                 self._native = DentAPI()
-            except Exception as exc:
-                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            except (FileNotFoundError, OSError, RuntimeError) as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail="DENT native API is unavailable.",
+                    headers={"X-DENT-Error-Code": "NATIVE_API_UNAVAILABLE"},
+                ) from exc
         return self._native
 
     def solve(self, request: SolveRequest):
@@ -23,15 +27,39 @@ class SolverService:
         try:
             result = self._get_native().solve(request)
             return run_service.create(result, "json")
+        except HTTPException:
+            raise
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=400,
+                detail=str(exc),
+                headers={"X-DENT-Error-Code": "MODEL_ERROR"},
+            ) from exc
+        except (RuntimeError, OSError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="DENT solver execution failed.",
+                headers={"X-DENT-Error-Code": "SOLVER_RUNTIME_ERROR"},
+            ) from exc
 
     def solve_file(self, data: bytes, source_name=None):
         try:
             result = self._get_native().solve_file(data)
             return run_service.create(result, "file", source_name)
+        except HTTPException:
+            raise
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=400,
+                detail=str(exc),
+                headers={"X-DENT-Error-Code": "MODEL_FILE_ERROR"},
+            ) from exc
+        except (RuntimeError, OSError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="DENT solver execution failed.",
+                headers={"X-DENT-Error-Code": "SOLVER_RUNTIME_ERROR"},
+            ) from exc
 
     def health(self):
         try:
