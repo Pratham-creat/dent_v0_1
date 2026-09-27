@@ -1,17 +1,25 @@
-from fastapi import Request, HTTPException
+from typing import Any
+
+from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
-def error_response(status_code: int, code: str, detail: str):
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "detail": detail,
-            "code": code,
-            "status": status_code,
-        },
-    )
+def error_response(
+    status_code: int,
+    code: str,
+    detail: str,
+    errors: list[dict[str, Any]] | None = None,
+):
+    content = {
+        "detail": detail,
+        "code": code,
+        "status": status_code,
+    }
+    if errors:
+        content["errors"] = errors
+
+    return JSONResponse(status_code=status_code, content=content)
 
 
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -28,6 +36,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         422,
         "REQUEST_VALIDATION_ERROR",
         "Request validation failed.",
+        errors=exc.errors(),
+    )
+
+
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return error_response(
+        500,
+        "INTERNAL_ERROR",
+        "An unexpected internal error occurred.",
     )
 
 
