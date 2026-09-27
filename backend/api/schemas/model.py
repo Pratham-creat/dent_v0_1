@@ -2,9 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
-class ErrorResponse(BaseModel):
-    detail: str
+from api.schemas.errors import ErrorResponse
 
 
 class Variable(BaseModel):
