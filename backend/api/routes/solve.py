@@ -2,19 +2,25 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from api.schemas.model import SolveRequest
+from api.schemas.model import ErrorResponse, SolveRequest
 from services.solver_service import solver_service
 
 
 router = APIRouter(prefix="/api/v1")
 
 
-@router.post("/solve")
+@router.post(
+    "/solve",
+    responses={400: {"model": ErrorResponse, "description": "Invalid optimization model."}},
+)
 def solve(request: SolveRequest):
     return solver_service.solve(request)
 
 
-@router.post("/solve-file")
+@router.post(
+    "/solve-file",
+    responses={400: {"model": ErrorResponse, "description": "Invalid model file."}},
+)
 async def solve_file(file: UploadFile = File(...)):
     if not file.filename or Path(file.filename).suffix.lower() != ".dent":
         raise HTTPException(400, "Only .dent model files are supported.")
