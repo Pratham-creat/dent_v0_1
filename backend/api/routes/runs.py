@@ -24,6 +24,11 @@ def list_runs(
     }
 
 
+@router.get("/telemetry")
+def telemetry():
+    return run_service.telemetry()
+
+
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 def clear_runs():
     run_service.clear()
