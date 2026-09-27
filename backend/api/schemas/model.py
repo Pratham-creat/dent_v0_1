@@ -15,7 +15,7 @@ class Constraint(BaseModel):
     name: str
     sense: int = Field(..., ge=0, le=2)
     rhs: float
-    coefficients: dict[str, float] = Field(default_factory=dict)
+    coefficients: dict[str, float] = {}
 
 
 class QuadraticTerm(BaseModel):
@@ -27,5 +27,5 @@ class QuadraticTerm(BaseModel):
 class SolveRequest(BaseModel):
     objective: Literal["minimize", "maximize"] = "minimize"
     variables: list[Variable]
-    constraints: list[Constraint] = Field(default_factory=list)
-    quadratic_terms: list[QuadraticTerm] = Field(default_factory=list)
+    constraints: list[Constraint] = []
+    quadratic_terms: list[QuadraticTerm] = []
