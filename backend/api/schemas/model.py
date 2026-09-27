@@ -80,3 +80,24 @@ class RunResponse(BaseModel):
     source_type: str
     source_name: str | None = None
     result: SolveResult
+
+
+class BenchmarkRequest(BaseModel):
+    model: SolveRequest
+    methods: list[Literal[
+        "auto",
+        "primal_simplex",
+        "interior_point",
+        "pdhg",
+        "pdlp",
+        "qp",
+        "milp",
+    ]] = Field(default_factory=lambda: [
+        "auto",
+        "primal_simplex",
+        "interior_point",
+        "pdhg",
+        "pdlp",
+        "qp",
+        "milp",
+    ])
