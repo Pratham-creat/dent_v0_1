@@ -89,11 +89,11 @@ class DentAPI:
         try:
             ids={}; types={"continuous":0,"integer":1,"binary":2}
             for i,v in enumerate(req.variables):
-                if self.lib.dent_model_add_variable(model,v.name.encode(),v.lower_bound,v.upper_bound,types[v.type]): raise RuntimeError(self.error())
+                if self.lib.dent_model_add_variable(model,v.name.encode(),v.lower_bound,v.upper_bound,types[v.type]) < 0: raise RuntimeError(self.error())
                 ids[v.name]=i
                 if self.lib.dent_model_set_objective_coefficient(model,i,v.objective_coefficient): raise RuntimeError(self.error())
             for j,c in enumerate(req.constraints):
-                if self.lib.dent_model_add_constraint(model,c.name.encode(),c.sense,c.rhs): raise RuntimeError(self.error())
+                if self.lib.dent_model_add_constraint(model,c.name.encode(),c.sense,c.rhs) < 0: raise RuntimeError(self.error())
                 for name,coef in c.coefficients.items():
                     if name not in ids: raise HTTPException(400,f"Unknown variable: {name}")
                     if self.lib.dent_model_set_constraint_coefficient(model,j,ids[name],coef): raise RuntimeError(self.error())
