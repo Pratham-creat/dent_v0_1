@@ -58,3 +58,17 @@ class RunRepository:
         result = dict(row)
         result["result"] = json.loads(result.pop("result_json"))
         return result
+
+    def delete(self, run_id):
+        with get_connection() as connection:
+            cursor = connection.execute(
+                "DELETE FROM runs WHERE id = ?", (run_id,)
+            )
+            connection.commit()
+        return cursor.rowcount > 0
+
+    def clear(self):
+        with get_connection() as connection:
+            cursor = connection.execute("DELETE FROM runs")
+            connection.commit()
+        return cursor.rowcount
