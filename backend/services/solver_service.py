@@ -2,6 +2,7 @@ from fastapi import HTTPException
 
 from api.schemas.model import SolveRequest
 from native.dent_api import DentAPI
+from services.run_service import run_service
 
 
 class SolverService:
@@ -18,13 +19,15 @@ class SolverService:
 
     def solve(self, request: SolveRequest):
         try:
-            return self._get_native().solve(request)
+            result = self._get_native().solve(request)
+            return run_service.create(result, "json")
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    def solve_file(self, data: bytes):
+    def solve_file(self, data: bytes, source_name=None):
         try:
-            return self._get_native().solve_file(data)
+            result = self._get_native().solve_file(data)
+            return run_service.create(result, "file", source_name)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
