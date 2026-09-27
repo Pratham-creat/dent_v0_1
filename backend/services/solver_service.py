@@ -54,7 +54,7 @@ class SolverService:
 
     def solve_file(self, data: bytes, source_name=None):
         try:
-            result = self._get_native().solve_file(data)
+            result = self._get_native().solve_file(data, None)
             return run_service.create(result, "file", source_name)
         except HTTPException as exc:
             self._raise_normalized(exc, "MODEL_FILE_ERROR")
