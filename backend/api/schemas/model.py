@@ -70,6 +70,7 @@ class SolveResult(BaseModel):
     message: str
     variables: list[VariableResult]
     fingerprint: Fingerprint
+    configuration: SolverOptions | None = None
 
 
 class RunResponse(BaseModel):
