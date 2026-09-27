@@ -19,4 +19,4 @@ async def solve_file(file: UploadFile = File(...)):
     if not file.filename or Path(file.filename).suffix.lower() != ".dent":
         raise HTTPException(400, "Only .dent model files are supported.")
 
-    return solver_service.solve_file(await file.read())
+    return solver_service.solve_file(await file.read(), file.filename)
