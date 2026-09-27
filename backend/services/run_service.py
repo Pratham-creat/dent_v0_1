@@ -21,5 +21,11 @@ class RunService:
     def get(self, run_id):
         return run_repository.get(run_id)
 
+    def delete(self, run_id):
+        return run_repository.delete(run_id)
+
+    def clear(self):
+        return run_repository.clear()
+
 
 run_service = RunService()
