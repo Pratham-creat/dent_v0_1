@@ -1,0 +1,11 @@
+PROBLEM: Negative Coefficients
+
+MINIMIZE
+    -2x + 3*y - z
+
+SUBJECT TO
+    -x + 2y + z >= 5
+    x + y - z = 2
+
+CONTINUOUS
+    x y z

@@ -1,0 +1,10 @@
+^C:\USERS\PRATHAM\DOWNLOADS\DENT_V0_1\DENT_V0_1\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1 -BC:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build_asan --check-stamp-file C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build_asan/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

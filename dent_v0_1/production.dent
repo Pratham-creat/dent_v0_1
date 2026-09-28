@@ -1,0 +1,11 @@
+PROBLEM: Production Planning
+
+MAXIMIZE
+    40 ProductA + 30 ProductB
+
+SUBJECT TO
+    2 ProductA + ProductB <= 100
+    ProductA + 2 ProductB <= 80
+
+INTEGER
+    ProductA ProductB

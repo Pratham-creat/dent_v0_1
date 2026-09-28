@@ -1,0 +1,346 @@
+Start testing: Sep 27 12:18 India Standard Time
+----------------------------------------------------------
+1/9 Testing: dent_solver_industry_test
+1/9 Test: dent_solver_industry_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_solver_industry_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_solver_industry_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+============================================================
+ DENT DUAL SIMPLEX REGRESSION SUITE
+============================================================
+
+Testing cold solve, basis reuse, RHS reoptimization,
+structural rejection and repeated operational solves.
+
+[PASS] Cold Dual Simplex solve
+[PASS] Cold Dual Simplex objective
+[PASS] Cold Dual Simplex solution
+[PASS] Primal basis acquisition solve
+[PASS] Primal basis acquisition objective
+[PASS] Persisted basis marked available
+[PASS] Persisted basis matches original model
+[PASS] Warm-start survives RHS-only model change
+[PASS] Actual Dual Simplex reoptimization
+[PASS] Dual Simplex reports warm-start usage
+[PASS] Dual Simplex performed repair pivots
+[PASS] Dual Simplex reoptimization objective
+[PASS] Dual Simplex reoptimization solution
+[PASS] Warm-start rejected after matrix change
+[PASS] Incompatible basis safely rejected
+[PASS] Rejected basis not reported as used
+[PASS] Dual warm-start lifecycle set
+[PASS] Dual warm-start lifecycle clear
+[PASS] Repeated RHS reoptimization sequence
+
+============================================================
+ TEST SUMMARY
+============================================================
+Passed : 19
+Failed : 0
+Total  : 19
+
+DENT Dual Simplex regression suite PASSED.
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"dent_solver_industry_test" end time: Sep 27 12:18 India Standard Time
+"dent_solver_industry_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/9 Testing: dent_interior_point_test
+2/9 Test: dent_interior_point_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_interior_point_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_interior_point_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+DENT INTERIOR-POINT REGRESSION SUITE
+
+[PASS] Basic LP status
+[PASS] Basic LP objective
+[PASS] Basic LP solution
+[PASS] Minimization LP status
+[PASS] Minimization LP objective
+[PASS] Minimization LP solution
+[PASS] Mixed constraint LP status
+[PASS] Mixed constraint LP objective
+[PASS] Mixed constraint LP solution
+[PASS] Finite variable bound LP status
+[PASS] Finite variable bound LP objective
+[PASS] Finite variable bound LP solution
+[PASS] Integer model rejection
+[PASS] Repeated IPM solve status
+[PASS] Repeated IPM objective consistency
+[PASS] Repeated IPM solution size consistency
+
+Passed : 16
+Failed : 0
+Total  : 16
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"dent_interior_point_test" end time: Sep 27 12:18 India Standard Time
+"dent_interior_point_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/9 Testing: dent_model_parser_test
+3/9 Test: dent_model_parser_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_model_parser_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_model_parser_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+============================================================
+ DENT .DENT PARSER REGRESSION SUITE
+============================================================
+
+[PASS] Production variable count
+[PASS] Production constraint count
+[PASS] Production objective sense
+[PASS] Production integer declarations
+[PASS] Production objective coefficients
+[PASS] Negative-expression variable count
+[PASS] Negative-expression objective
+[PASS] Greater-equal parsing
+[PASS] Equality parsing
+[PASS] Binary variable count
+[PASS] Binary declarations
+[PASS] Binary upper bounds
+[PASS] Comment and label parsing
+[PASS] Labelled first constraint
+[PASS] Labelled second constraint
+[PASS] Duplicate objective terms accumulate
+[PASS] Duplicate constraint terms accumulate
+[PASS] Invalid constraint rejected
+
+============================================================
+ TEST SUMMARY
+============================================================
+Passed : 18
+Failed : 0
+Total  : 18
+
+DENT .dent parser regression suite PASSED.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"dent_model_parser_test" end time: Sep 27 12:18 India Standard Time
+"dent_model_parser_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/9 Testing: dent_scaling_test
+4/9 Test: dent_scaling_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_scaling_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_scaling_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+============================================================
+ DENT SCALING REGRESSION SUITE
+============================================================
+
+[PASS] Continuous LP scaling applied
+[PASS] Scaling metadata dimensions
+[PASS] At least one scaling factor changed
+[PASS] Scaled solution size
+[PASS] Postsolve unscaling
+[PASS] Mixed-integer scaling completes
+[PASS] Integer column remains unscaled
+[PASS] Binary column remains unscaled
+[PASS] Empty model skips scaling
+[PASS] Empty-model scaling message
+[PASS] QP scaling applied
+[PASS] QP quadratic matrix preserved
+[PASS] QP scaled quadratic coefficients finite
+
+============================================================
+ TEST SUMMARY
+============================================================
+Passed : 13
+Failed : 0
+Total  : 13
+
+DENT scaling regression suite PASSED.
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"dent_scaling_test" end time: Sep 27 12:18 India Standard Time
+"dent_scaling_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/9 Testing: dent_milp_branching_test
+5/9 Test: dent_milp_branching_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_milp_branching_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_milp_branching_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+[PASS] Branching MILP
+[PASS] Cover separation
+[PASS] Best-bound node management
+[PASS] Incumbent heuristic
+
+MILP strengthening regression
+Passed: 4
+Failed: 0
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"dent_milp_branching_test" end time: Sep 27 12:18 India Standard Time
+"dent_milp_branching_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/9 Testing: dent_pdhg_test
+6/9 Test: dent_pdhg_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_pdhg_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_pdhg_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+[PASS] PDHG continuous LP
+[PASS] PDHG minimization
+[PASS] PDHG equality constraints
+[PASS] PDHG warm start
+
+PDHG regression
+Passed: 4
+Failed: 0
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"dent_pdhg_test" end time: Sep 27 12:18 India Standard Time
+"dent_pdhg_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/9 Testing: dent_pdlp_test
+7/9 Test: dent_pdlp_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_pdlp_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_pdlp_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+========================================
+           DENT PDLP TESTS
+========================================
+
+[TEST] LP Production
+  Status    : OPTIMAL
+  Objective : 4059.14
+  Iterations: 50000
+  PASS
+
+[TEST] LP Blending
+  Status    : OPTIMAL
+  Objective : 15912.6
+  Iterations: 50000
+  PASS
+
+[TEST] LP Transportation
+  Status    : OPTIMAL
+  Objective : 1190
+  Iterations: 50000
+  PASS
+
+========================================
+SUMMARY
+========================================
+Passed: 3
+Failed: 0
+
+All PDLP tests passed.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"dent_pdlp_test" end time: Sep 27 12:18 India Standard Time
+"dent_pdlp_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/9 Testing: dent_dispatcher_test
+8/9 Test: dent_dispatcher_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_dispatcher_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_dispatcher_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+DENT ADAPTIVE DISPATCHER REGRESSION SUITE
+
+[PASS] Small LP -> Primal Simplex
+[PASS] Small LP -> CPU execution
+[PASS] Large sparse LP -> Interior Point
+[PASS] IPM solver name reported
+[PASS] IPM -> CPU execution
+[PASS] Continuous QP -> QP solver
+[PASS] MILP -> Branch-and-Bound
+[PASS] MIQP -> Unsupported
+[PASS] Primal Simplex method name
+[PASS] Interior Point method name
+[PASS] MILP method name
+
+Passed : 11
+Failed : 0
+Total  : 11
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"dent_dispatcher_test" end time: Sep 27 12:18 India Standard Time
+"dent_dispatcher_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/9 Testing: dent_solution_validator_test
+9/9 Test: dent_solution_validator_test
+Command: "C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1/build/Release/dent_solution_validator_test.exe"
+Directory: C:/Users/PRATHAM/Downloads/dent_v0_1/dent_v0_1
+"dent_solution_validator_test" start time: Sep 27 12:18 India Standard Time
+Output:
+----------------------------------------------------------
+DENT SOLUTION VALIDATION REGRESSION SUITE
+
+[PASS] Valid LP solution
+[PASS] Valid dimensions
+[PASS] Valid variable bounds
+[PASS] Valid constraints
+[PASS] Valid objective
+[PASS] Objective recomputation
+[PASS] Constraint violation detected
+[PASS] Constraint status rejected
+[PASS] Constraint residual is correct
+[PASS] Bound violation detected
+[PASS] Bound status rejected
+[PASS] Bound violation magnitude
+[PASS] Objective mismatch detected
+[PASS] Objective status rejected
+[PASS] Objective error is correct
+[PASS] Integer solution accepted
+[PASS] Fractional integer solution rejected
+[PASS] Integer integrality violation detected
+[PASS] Binary one accepted
+[PASS] Binary zero accepted
+[PASS] Fractional binary solution rejected
+[PASS] QP objective verification
+[PASS] QP objective value
+[PASS] Dimension mismatch rejected
+[PASS] Dimension status rejected
+[PASS] Non-optimal result is not accepted
+
+Passed : 26
+Failed : 0
+Total  : 26
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"dent_solution_validator_test" end time: Sep 27 12:18 India Standard Time
+"dent_solution_validator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 27 12:18 India Standard Time
