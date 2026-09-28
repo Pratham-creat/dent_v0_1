@@ -2,7 +2,8 @@ import {useEffect,useMemo,useState} from "react";
 import type {ReactNode} from "react";
 import {ChevronDown,CircleCheck,Play,RefreshCw,Trash2} from "lucide-react";
 import {getHealth,getRuns,solveFile,solveModel} from "./api";
-import {sampleModel} from "./sampleModel";\nimport ModelInputPage from "./ModelInputPage";
+import {sampleModel} from "./sampleModel";
+import ModelInputPage from "./ModelInputPage";
 import type {RunResponse,RunSummary,SolveRequest,SolverMethod} from "./types";
 
 const labels:Record<SolverMethod,string>={auto:"AUTO",primal_simplex:"PRIMAL SIMPLEX",interior_point:"INTERIOR POINT",pdhg:"PDHG",pdlp:"PDLP",qp:"QP",milp:"MILP"};
@@ -49,7 +50,8 @@ export default function App(){
   try{
    setStage("PRESOLVE");await delay(420);
    setStage("STRATEGY");await delay(420);
-   setModel(nextModel);\n   const r=await solveModel(nextModel);setRun(r);
+   setModel(nextModel);
+   const r=await solveModel(nextModel);setRun(r);
    const selected=r.result.solver||labels[model.solver.method];
    const count=Math.max(8,Math.min(40,r.result.iterations||15));
    setTelemetry(makeTelemetry(count,selected,r.result.objective));
@@ -58,12 +60,17 @@ export default function App(){
   }catch(e){setError(e instanceof Error?e.message:"Solver request failed.");setStage("MODEL")}
   finally{setRunning(false)}
  };
- const executeFile=async(file:File)=>{\n  setRunning(true);setError("");setRun(null);setStage("MODEL");setNow(0);\n  try{const r=await solveFile(file,{method:"auto",tolerance:0,max_iterations:0});setRun(r);setTelemetry(makeTelemetry(Math.max(8,Math.min(40,r.result.iterations||15)),r.result.solver,r.result.objective));setStage("SOLUTION");await refresh()}catch(e){setError(e instanceof Error?e.message:"File solve failed.");setStage("MODEL")}finally{setRunning(false)}\n };\n const selected=problems.find(p=>p.name===selectedProblem)||problems[0];
+ const executeFile=async(file:File)=>{
+  setRunning(true);setError("");setRun(null);setStage("MODEL");setNow(0);
+  try{const r=await solveFile(file,{method:"auto",tolerance:0,max_iterations:0});setRun(r);setTelemetry(makeTelemetry(Math.max(8,Math.min(40,r.result.iterations||15)),r.result.solver,r.result.objective));setStage("SOLUTION");await refresh()}catch(e){setError(e instanceof Error?e.message:"File solve failed.");setStage("MODEL")}finally{setRunning(false)}
+ };
+ const selected=problems.find(p=>p.name===selectedProblem)||problems[0];
  return <div className="app-shell">
   <header className="workbar"><div className="brandline"><span className="brandword">sovereign</span><span className="version">v2.0.0</span><span>|</span></div><nav><button className={view==="workbench"?"topnav active":"topnav"} onClick={()=>setView("workbench")}>workbench</button><button className={view==="input"?"topnav active":"topnav"} onClick={()=>setView("input")}>model input</button><button className={view==="benchmarks"?"topnav active":"topnav"} onClick={()=>setView("benchmarks")}>benchmarks</button><button className={online?"topnav api-online":"topnav"}><i/>api {online?"online":"offline"} <span>http://localhost:8000</span></button></nav><div className="hardware">12 cores · cpu</div></header>
   {view==="workbench"&&<Workbench model={model} setModel={setModel} run={run} running={running} online={online} stage={stage} setStage={setStage} telemetry={telemetry} selectedProblem={selectedProblem} setSelectedProblem={setSelectedProblem} execute={execute} error={error} now={now} onHistory={()=>setView("history")} onModel={()=>setView("model")} selected={selected}/>}
   {view==="history"&&<HistoryView runs={runs} onBack={()=>setView("workbench")} onRefresh={()=>void refresh()}/>}
-  {view==="model"&&<ModelPage model={model} setModel={setModel} onBack={()=>setView("workbench")}/>}\n  {view==="input"&&<ModelInputPage model={model} setModel={setModel} running={running} onRun={execute} onFileRun={executeFile} onBack={()=>setView("workbench")}/>}
+  {view==="model"&&<ModelPage model={model} setModel={setModel} onBack={()=>setView("workbench")}/>}
+  {view==="input"&&<ModelInputPage model={model} setModel={setModel} running={running} onRun={execute} onFileRun={executeFile} onBack={()=>setView("workbench")}/>}
   {view==="benchmarks"&&<BenchmarkPage onBack={()=>setView("workbench")}/>}
  </div>
 }
