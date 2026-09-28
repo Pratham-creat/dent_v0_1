@@ -46,22 +46,18 @@ export default function App(){
  useEffect(()=>{void refresh()},[]);
  useEffect(()=>{if(!running)return;const id=window.setInterval(()=>setNow(v=>v+100),100);return()=>window.clearInterval(id)},[running]);
  const execute=async(nextModel=model)=>{
-  setRunning(true);setError("");setRun(null);setStage("SOLVE");setNow(0);
+  setView("workbench");setRunning(true);setError("");setRun(null);setStage("SOLVE");setNow(0);
   try{
-   setStage("PRESOLVE");await delay(420);
-   setStage("STRATEGY");await delay(420);
    setModel(nextModel);
    const r=await solveModel(nextModel);setRun(r);
-   const selected=r.result.solver||labels[model.solver.method];
-   const count=Math.max(8,Math.min(40,r.result.iterations||15));
-   setTelemetry(makeTelemetry(count,selected,r.result.objective));
-   setStage("SOLVE");await delay(Math.min(3200,Math.max(1400,count*85)));
-   setStage("SOLUTION");await delay(650);setStage("CERTIFICATE");await delay(650);await refresh();
+   setTelemetry(makeTelemetry(0,r.result.solver));
+   setStage("SOLUTION");
+   await refresh();
   }catch(e){setError(e instanceof Error?e.message:"Solver request failed.");setStage("MODEL")}
   finally{setRunning(false)}
  };
  const executeFile=async(file:File)=>{
-  setRunning(true);setError("");setRun(null);setStage("MODEL");setNow(0);
+  setView("workbench");setRunning(true);setError("");setRun(null);setStage("SOLVE");setNow(0);
   try{const r=await solveFile(file,{method:"auto",tolerance:0,max_iterations:0});setRun(r);setTelemetry(makeTelemetry(0,r.result.solver));setStage("SOLUTION");await refresh()}catch(e){setError(e instanceof Error?e.message:"File solve failed.");setStage("MODEL")}finally{setRunning(false)}
  };
  const selected=problems.find(p=>p.name===selectedProblem)||problems[0];
@@ -86,7 +82,36 @@ function PresolveStage({problem,telemetry}:{problem:{vars:number;cons:number;nnz
 
 function StrategyStage({problem,telemetry}:{problem:{kind:string;vars:number;cons:number};telemetry:TelemetryState}){const choices=problem.kind==="MILP"?["MILP","PRIMAL SIMPLEX","PDLP"]:problem.kind==="MIQP"?["QP","INTERIOR POINT","PDLP"]:["INTERIOR POINT","PDLP","PRIMAL SIMPLEX"];return <div className="stage-content"><div className="strategy-grid"><Panel title="engine strategy"><div className="strategy-title">selected <strong>{telemetry.selected}</strong><small>{telemetry.confidence.toFixed(1)}% confidence</small></div>{choices.map((c,i)=><div className={i===0?"strategy-row selected":"strategy-row"} key={c}><span>{c}</span><b>{i===0?telemetry.confidence.toFixed(1):Math.max(8,100-telemetry.confidence-i*18).toFixed(1)}%</b><div><i style={{width:(i===0?telemetry.confidence:Math.max(8,100-telemetry.confidence-i*18))+"%"}}/></div></div>)}</Panel><Panel title="decision trace"><Log lines={["problem class: "+problem.kind,"dimensions: "+problem.vars.toLocaleString()+" vars × "+problem.cons.toLocaleString()+" cons","sparsity / scaling inspected","presolve statistics incorporated","selected "+telemetry.selected,"confidence "+telemetry.confidence.toFixed(1)+"%","strategy locked"]}/></Panel></div></div>}
 
-function SolveStage({telemetry,running,elapsed,result}:{telemetry:TelemetryState;running:boolean;elapsed:number;result:RunResponse["result"]|undefined}){\n const method=telemetry.selected||"DENT SOLVER";\n return <div className="stage-content">\n  {result&&<RunSummaryBar result={result}/>}\n  <div className="solve-grid">\n   <div>\n    <Panel title={running?"solver activity":"solver activity complete"}>\n     <SolverActivityGraph running={running} method={method} result={result}/>\n    </Panel>\n    <Panel title="solve status">\n     <div className="activity-status"><span className={running?"activity-dot live":"activity-dot"}>●</span><div><b>{running?"DENT is solving the submitted model":"DENT returned a solver result"}</b><small>{running?"Activity visualization only; no fabricated iterations, gaps, residuals, speedups, or GPU measurements.":result?("Objective: "+fmt(result.objective)):"Waiting for the solver response."}</small></div><strong>{running?fmt(elapsed)+" ms":result?.status||"waiting"}</strong></div>\n    </Panel>\n   </div>\n   <Panel title="run information">\n    <div className="run-info"><Row k="method" v={method}/><Row k="state" v={running?"running":result?.status||"waiting"}/><Row k="objective" v={result?fmt(result.objective):"—"}/><Row k="iterations" v={result?String(result.iterations):"not available yet"}/><Row k="solve time" v={result&&result.solve_time_ms!=null?result.solve_time_ms.toFixed(1)+" ms":"not available yet"}/></div>\n   </Panel>\n  </div>\n </div>\n}\n\nfunction SolverActivityGraph({running,method,result}:{running:boolean;method:string;result:RunResponse["result"]|undefined}){\n const bars=Array.from({length:28},(_,i)=>({h:running?18+((i*17)%55):result?12+((i*11)%24):12}));\n return <div className={running?"solver-activity running":"solver-activity"} aria-label={running?"Animated solver activity":"Solver activity complete"}>\n  <div className="activity-grid">{bars.map((b,i)=><i key={i} style={{height:b.h+"%"}}/> )}</div>\n  <div className="activity-scan"/><div className="activity-label"><span>{running?"LIVE SOLVE":"SOLVE COMPLETE"}</span><b>{method}</b></div>\n  {result&&<div className="activity-result">objective <strong>{fmt(result.objective)}</strong></div>}\n </div>\n}\n\nfunction SolutionStage({result}:{result:RunResponse["result"]|undefined}){return <div className="stage-content">{result&&<RunSummaryBar result={result}/>}<div className="solution-grid"><Panel title="solution vector"><div className="solution-table"><div className="table-head"><span>variable</span><span>value</span><span>reduced cost</span></div>{(result?.variables||[]).map((v,i)=><div className="solution-row" key={v.name}><code>{v.name}</code><b>{fmt(v.value)}</b><span>{i%4===0?"0.000":"—"}</span></div>)}</div></Panel><Panel title="solution diagnostics"><Row k="objective" v={result?fmt(result.objective):"—"}/><Row k="status" v={result?.status||"—"}/><Row k="iterations" v={String(result?.iterations??"—")}/><Row k="variables" v={String(result?.fingerprint.variables??"—")}/><Row k="constraints" v={String(result?.fingerprint.constraints??"—")}/><Row k="nonzeros" v={String(result?.fingerprint.nonzeros??"—")}/></Panel></div></div>}
+function SolveStage({telemetry,running,elapsed,result}:{telemetry:TelemetryState;running:boolean;elapsed:number;result:RunResponse["result"]|undefined}){
+ const method=telemetry.selected||"DENT SOLVER";
+ return <div className="stage-content">
+  {result&&<RunSummaryBar result={result}/>}
+  <div className="solve-grid">
+   <div>
+    <Panel title={running?"solver activity":"solver activity complete"}>
+     <SolverActivityGraph running={running} method={method} result={result}/>
+    </Panel>
+    <Panel title="solve status">
+     <div className="activity-status"><span className={running?"activity-dot live":"activity-dot"}>●</span><div><b>{running?"DENT is solving the submitted model":"DENT returned a solver result"}</b><small>{running?"Activity visualization only; no fabricated iterations, gaps, residuals, speedups, or GPU measurements.":result?("Objective: "+fmt(result.objective)):"Waiting for the solver response."}</small></div><strong>{running?fmt(elapsed)+" ms":result?.status||"waiting"}</strong></div>
+    </Panel>
+   </div>
+   <Panel title="run information">
+    <div className="run-info"><Row k="method" v={method}/><Row k="state" v={running?"running":result?.status||"waiting"}/><Row k="objective" v={result?fmt(result.objective):"—"}/><Row k="iterations" v={result?String(result.iterations):"not available yet"}/><Row k="solve time" v={result&&result.solve_time_ms!=null?result.solve_time_ms.toFixed(1)+" ms":"not available yet"}/></div>
+   </Panel>
+  </div>
+ </div>
+}
+
+function SolverActivityGraph({running,method,result}:{running:boolean;method:string;result:RunResponse["result"]|undefined}){
+ const bars=Array.from({length:28},(_,i)=>({h:running?18+((i*17)%55):result?12+((i*11)%24):12}));
+ return <div className={running?"solver-activity running":"solver-activity"} aria-label={running?"Animated solver activity":"Solver activity complete"}>
+  <div className="activity-grid">{bars.map((b,i)=><i key={i} style={{height:b.h+"%"}}/> )}</div>
+  <div className="activity-scan"/><div className="activity-label"><span>{running?"LIVE SOLVE":"SOLVE COMPLETE"}</span><b>{method}</b></div>
+  {result&&<div className="activity-result">objective <strong>{fmt(result.objective)}</strong></div>}
+ </div>
+}
+
+function SolutionStage({result}:{result:RunResponse["result"]|undefined}){return <div className="stage-content">{result&&<RunSummaryBar result={result}/>}<div className="solution-grid"><Panel title="solution vector"><div className="solution-table"><div className="table-head"><span>variable</span><span>value</span><span>reduced cost</span></div>{(result?.variables||[]).map((v,i)=><div className="solution-row" key={v.name}><code>{v.name}</code><b>{fmt(v.value)}</b><span>{i%4===0?"0.000":"—"}</span></div>)}</div></Panel><Panel title="solution diagnostics"><Row k="objective" v={result?fmt(result.objective):"—"}/><Row k="status" v={result?.status||"—"}/><Row k="iterations" v={String(result?.iterations??"—")}/><Row k="variables" v={String(result?.fingerprint.variables??"—")}/><Row k="constraints" v={String(result?.fingerprint.constraints??"—")}/><Row k="nonzeros" v={String(result?.fingerprint.nonzeros??"—")}/></Panel></div></div>}
 
 function CertificateStage({result,telemetry}:{result:RunResponse["result"]|undefined;telemetry:TelemetryState}){const checks=[["constraints satisfied","max violation 1.5e-11"],["bounds respected","max violation 0"],["integers integral","max gap 0"],["objective reproduced","difference 0"],["duals feasible","max violation 1.1e-17"],["strong duality holds","gap 1.5e-16"]];return <div className="stage-content">{result&&<RunSummaryBar result={result}/>}<div className="certificate-grid"><Panel title="certificate"><div className="verdict">certified optimal</div><p className="hint"># independently checked against the returned solution.</p>{checks.map(x=><div className="check-row" key={x[0]}><CircleCheck size={14}/><span>{x[0]}</span><b>{x[1]}</b></div>)}<p className="hint footer-note"># recomputed from the raw model in float64. tolerances 1e-6.</p></Panel><Panel title="pipeline"><Pipeline telemetry={telemetry}/><Log lines={["[ok] formulation & topology","[ok] presolve reductions","[ok] ai meta-strategy selected "+telemetry.selected+" ("+telemetry.confidence.toFixed(1)+"% confidence)","[ok] sovereign core solve "+(result?.status||"complete"),"[ok] postsolve reconstruction","[ok] independent audit · certificate"]}/></Panel></div></div>}
 
