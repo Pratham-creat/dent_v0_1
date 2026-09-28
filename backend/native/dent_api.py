@@ -24,7 +24,7 @@ def _library_candidates():
         if "darwin" in system
         else "libdent_api.so"
     )
-    return [ROOT / p / name for p in ("build", "build/Release", "build/Debug")]
+    return [ROOT / p / name for p in ("build", "build/Release", "build/Debug", "dent_v0_1/build", "dent_v0_1/build/Release", "dent_v0_1/build/Debug")]
 
 
 class DentAPI:
