@@ -15,3 +15,5 @@ export async function solveModel(model:any):Promise<RunResponse>{
 }
 export async function getRuns(){const r=await fetch(API_URL+'/api/v1/runs?limit=50'); if(!r.ok) throw new Error('History unavailable'); return r.json();}
 export async function getRun(id:string):Promise<RunResponse>{const r=await fetch(API_URL+'/api/v1/runs/'+encodeURIComponent(id)); if(!r.ok) throw new Error('Run not found'); return r.json();}
+
+export async function solveFile(file:File, options:{method:string;tolerance:number;max_iterations:number}):Promise<RunResponse>{const q=new URLSearchParams({method:options.method,tolerance:String(options.tolerance),max_iterations:String(options.max_iterations)});const form=new FormData();form.append('file',file);const r=await fetch(API_URL+'/api/v1/solve-file?'+q.toString(),{method:'POST',body:form});const body=await r.json().catch(()=>({}));if(!r.ok)throw new Error(body.detail||'File solve request failed');return body;}
