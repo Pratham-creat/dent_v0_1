@@ -1,0 +1,9 @@
+export type SolverMethod="auto"|"primal_simplex"|"interior_point"|"pdhg"|"pdlp"|"qp"|"milp";
+export interface SolverOptions{method:SolverMethod;tolerance:number;max_iterations:number}
+export interface VariableResult{name:string;value:number}
+export interface Fingerprint{variables:number;constraints:number;nonzeros:number;density:number;mixed_integer:boolean;quadratic:boolean}
+export interface SolveResult{status:string;objective:number;solver:string;iterations:number;message:string;variables:VariableResult[];fingerprint:Fingerprint;solve_time_ms?:number|null;configuration?:SolverOptions|null}
+export interface RunResponse{id:string;created_at:string;source_type:string;source_name?:string|null;result:SolveResult}
+export interface RunSummary{id:string;created_at:string;source_type:string;source_name?:string|null;status:string;objective?:number|null;solver?:string|null;iterations?:number|null;solve_time_ms?:number|null;message?:string|null}
+export interface Telemetry{summary:{total_runs:number;optimal_runs:number;average_solve_time_ms?:number|null;minimum_solve_time_ms?:number|null;maximum_solve_time_ms?:number|null;average_iterations?:number|null;json_runs:number;file_runs:number};by_solver:Array<{solver:string;runs:number;average_solve_time_ms?:number|null;average_iterations?:number|null}>}
+export interface SolveRequest{objective:"minimize"|"maximize";variables:Array<{name:string;lower_bound:number;upper_bound:number;type:"continuous"|"integer"|"binary";objective_coefficient:number}>;constraints:Array<{name:string;sense:number;rhs:number;coefficients:Record<string,number>}>;quadratic_terms:Array<{row:string;column:string;coefficient:number}>;solver:SolverOptions}
