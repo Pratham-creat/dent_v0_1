@@ -103,11 +103,37 @@ function SolveStage({telemetry,running,elapsed,result}:{telemetry:TelemetryState
 }
 
 function SolverActivityGraph({running,method,result}:{running:boolean;method:string;result:RunResponse["result"]|undefined}){
- const bars=Array.from({length:28},(_,i)=>({h:running?18+((i*17)%55):result?12+((i*11)%24):12}));
- return <div className={running?"solver-activity running":"solver-activity"} aria-label={running?"Animated solver activity":"Solver activity complete"}>
-  <div className="activity-grid">{bars.map((b,i)=><i key={i} style={{height:b.h+"%"}}/> )}</div>
-  <div className="activity-scan"/><div className="activity-label"><span>{running?"LIVE SOLVE":"SOLVE COMPLETE"}</span><b>{method}</b></div>
-  {result&&<div className="activity-result">objective <strong>{fmt(result.objective)}</strong></div>}
+ if(running){
+  const activityBars=Array.from({length:28},(_,i)=>18+((i*17)%55));
+  return <div className="solver-activity running" aria-label="Animated solver activity">
+   <div className="activity-grid">{activityBars.map((h,i)=><i key={i} style={{height:h+"%"}}/> )}</div>
+   <div className="activity-scan"/>
+   <div className="activity-label"><span>LIVE SOLVE</span><b>{method}</b></div>
+   <div className="activity-note">activity indicator · waiting for DENT result</div>
+  </div>
+ }
+ if(!result){
+  return <div className="solver-activity" aria-label="Waiting for solver result">
+   <div className="activity-empty">NO SOLVER RESULT</div>
+  </div>
+ }
+ const values=result.variables.map(v=>v.value);
+ const max=Math.max(...values.map(v=>Math.abs(v)),0);
+ const scale=max>0?max:1;
+ return <div className="solver-activity result-chart" aria-label="Solution variable values">
+  <div className="activity-label"><span>SOLUTION PROFILE</span><b>{method}</b></div>
+  <div className="solution-bars">
+   {result.variables.map(v=>{
+    const magnitude=Math.abs(v.value)/scale*100;
+    const zero=v.value===0;
+    return <div className="solution-bar" key={v.name} title={v.name+": "+fmt(v.value)}>
+     <div className="solution-bar-track"><i className={zero?"zero":v.value<0?"negative":""} style={{height:Math.max(zero?0:3,magnitude)+"%"}}/></div>
+     <span>{v.name}</span>
+     <b>{fmt(v.value)}</b>
+    </div>
+   })}
+  </div>
+  <div className="activity-result">objective <strong>{fmt(result.objective)}</strong></div>
  </div>
 }
 
