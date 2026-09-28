@@ -1468,8 +1468,36 @@ QPSolution QPSolver::solve(
     result.variable_values =
         best_x;
 
+    /*
+     * Report the objective in the user's original
+     * objective sense. best_value is the internally
+     * transformed minimization objective used for
+     * KKT comparison.
+     */
+    double reported_objective = 0.0;
+
+    for (int i = 0;
+         i < n;
+         ++i) {
+
+        for (int j = 0;
+             j < n;
+             ++j) {
+
+            reported_objective +=
+                0.5 *
+                best_x[i] *
+                Q[i][j] *
+                best_x[j];
+        }
+
+        reported_objective +=
+            problem.objective()[i] *
+            best_x[i];
+    }
+
     result.objective_value =
-        best_value;
+        reported_objective;
 
     result.constraint_violation =
         final_violation;
