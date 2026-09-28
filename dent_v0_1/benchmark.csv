@@ -1,4 +1,0 @@
-model,solver,status,objective,time_ms,iterations,nodes,lp_solves
-"production.dent","MILP Branch-and-Bound",OPTIMAL,2200,0.01272,0,1,1
-"parser_test_binary.dent","MILP Branch-and-Bound",OPTIMAL,10,0.01105,0,1,1
-"parser_test_duplicate_terms.dent","Primal Simplex",OPTIMAL,16.6666666667,0.00546,1,0,0
