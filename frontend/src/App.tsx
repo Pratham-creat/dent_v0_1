@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from "react";
+import type {ReactNode} from "react";
 import {Activity,BarChart3,ChevronDown,CirclePause,FileText,Gauge,GitBranch,History,Play,RefreshCw,Server,Square,Terminal,Zap} from "lucide-react";
 import {getHealth,getRuns,solveModel} from "./api";
 import {sampleModel} from "./sampleModel";
@@ -49,7 +50,7 @@ export default function App(){
  </div>
 }
 function Metric(p:{label:string;value:string;detail:string}){return <div className="metric"><small>{p.label}</small><strong>{p.value}</strong><em>{p.detail}</em></div>}
-function Panel(p:{title:string;icon:React.ReactNode;children:React.ReactNode}){return <section className="panel"><header><span>{p.icon}{p.title}</span><ChevronDown size={12}/></header>{p.children}</section>}
+function Panel(p:{title:string;icon:ReactNode;children:React.ReactNode}){return <section className="panel"><header><span>{p.icon}{p.title}</span><ChevronDown size={12}/></header>{p.children}</section>}
 function Field(p:{label:string;children:React.ReactNode}){return <label className="field"><span>{p.label}</span>{p.children}</label>}
 function Chart({values}:{values:number[]}){const pts=values.map((v,i)=>`${18+i*(564/Math.max(values.length-1,1))},${185-v*1.6}`).join(" ");return <div className="chart"><div className="gridlines">{[1,2,3,4,5].map(i=><i key={i}/>)}</div><svg viewBox="0 0 600 210" preserveAspectRatio="none"><polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2"/></svg><div className="axis"><span>START</span><span>ITERATION / TIME</span><span>CONVERGENCE</span></div></div>}
 function NodeTree(){return <div className="nodetree"><div className="node root">ROOT</div><div className="node n1">NODE 041<small>BOUND</small></div><div className="node n2">NODE 042<small>INCUMBENT</small></div><div className="node n3">NODE 117<small>PRUNED</small></div><div className="node n4">NODE 118<small>OPEN</small></div></div>}
