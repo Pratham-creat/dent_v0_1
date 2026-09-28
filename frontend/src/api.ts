@@ -15,3 +15,5 @@ export async function solveModel(model:any):Promise<RunResponse>{
 }
 export async function getRuns(){const r=await fetch(API_URL+'/api/v1/runs?limit=50'); if(!r.ok) throw new Error('History unavailable'); return r.json();}
 export async function getRun(id:string):Promise<RunResponse>{const r=await fetch(API_URL+'/api/v1/runs/'+encodeURIComponent(id)); if(!r.ok) throw new Error('Run not found'); return r.json();}
+
+export async function benchmarkModel(request:any){const r=await fetch(API_URL+'/api/v1/benchmark',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});const body=await r.json();if(!r.ok)throw new Error(body.detail||'Benchmark request failed');return body;}

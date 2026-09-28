@@ -27,6 +27,11 @@ def solve(request: SolveRequest):
     return solver_service.solve(request)
 
 
+@router.post("/benchmark")
+def benchmark(request: BenchmarkRequest):
+    return benchmark_service.run(request)
+
+
 @router.post(
     "/solve-file",
     response_model=RunResponse,
