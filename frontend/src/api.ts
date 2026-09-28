@@ -17,3 +17,5 @@ export async function getRuns(){const r=await fetch(API_URL+'/api/v1/runs?limit=
 export async function getRun(id:string):Promise<RunResponse>{const r=await fetch(API_URL+'/api/v1/runs/'+encodeURIComponent(id)); if(!r.ok) throw new Error('Run not found'); return r.json();}
 
 export async function benchmarkModel(request:any){const r=await fetch(API_URL+'/api/v1/benchmark',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});const body=await r.json();if(!r.ok)throw new Error(body.detail||'Benchmark request failed');return body;}
+
+export async function solveFile(file:File, options:{method:string;tolerance:number;max_iterations:number}):Promise<RunResponse>{const q=new URLSearchParams({method:options.method,tolerance:String(options.tolerance),max_iterations:String(options.max_iterations)});const form=new FormData();form.append('file',file);const r=await fetch(API_URL+'/api/v1/solve-file?'+q.toString(),{method:'POST',body:form});const body=await r.json();if(!r.ok)throw new Error(body.detail||'File solve failed');return body;}
