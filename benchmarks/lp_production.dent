@@ -1,0 +1,12 @@
+PROBLEM: Industrial Production Planning
+
+MAXIMIZE
+45 ProductA + 38 ProductB + 52 ProductC + 30 ProductD
+
+SUBJECT TO
+2 ProductA + 3 ProductB + 4 ProductC + ProductD <= 240
+3 ProductA + 2 ProductB + 5 ProductC + 2 ProductD <= 300
+4 ProductA + 2 ProductB + 3 ProductC + ProductD <= 260
+ProductA + 3 ProductB + 2 ProductC + 4 ProductD <= 220
+ProductA >= 20
+ProductB >= 15

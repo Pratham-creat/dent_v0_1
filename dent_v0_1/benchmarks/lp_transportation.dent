@@ -1,0 +1,12 @@
+PROBLEM: Multi-Plant Transportation
+
+MINIMIZE
+4 P1_W1 + 6 P1_W2 + 9 P1_W3 + 5 P2_W1 + 4 P2_W2 + 7 P2_W3 + 8 P3_W1 + 5 P3_W2 + 3 P3_W3
+
+SUBJECT TO
+P1_W1 + P1_W2 + P1_W3 <= 120
+P2_W1 + P2_W2 + P2_W3 <= 150
+P3_W1 + P3_W2 + P3_W3 <= 100
+P1_W1 + P2_W1 + P3_W1 >= 100
+P1_W2 + P2_W2 + P3_W2 >= 130
+P1_W3 + P2_W3 + P3_W3 >= 90

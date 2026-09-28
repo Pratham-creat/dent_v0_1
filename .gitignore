@@ -1,0 +1,49 @@
+@"
+# C++ / CMake
+build/
+build_old_stale/
+build_asan/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.dll
+*.exe
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Backend runtime data
+backend/data/*.sqlite3
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Runtime / generated files
+out/
+*.log
+
+# Local solver/test artifacts
+parser_test_*.dent
+milp_crash.txt
+benchmark.csv
+large_solver_comparison.csv
+solver_comparison.csv
+
+# OS / editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+"@ | Set-Content .gitignore
