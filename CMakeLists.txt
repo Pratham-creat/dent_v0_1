@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 3.20)
 project(dent VERSION 0.12.0 LANGUAGES CXX)
 
 option(DENT_ENABLE_CUDA "Build optional CUDA backend" OFF)
+option(DENT_ENABLE_PARALLEL_MILP "Enable parallel MILP node workers" ON)
 option(DENT_ENABLE_SANITIZERS "Enable ASan/UBSan on supported compilers" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(Threads REQUIRED)
 
 if(DENT_ENABLE_SANITIZERS AND NOT MSVC)
     add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -60,6 +62,8 @@ add_library(
     src/io/interactive_builder.cpp
 )
 
+
+target_link_libraries(dent_core PUBLIC Threads::Threads)
 
 target_include_directories(
     dent_core
