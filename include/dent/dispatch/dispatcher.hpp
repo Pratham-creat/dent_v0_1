@@ -16,6 +16,7 @@ enum class SolverMethod {
     PDLP,
     QP,
     MILP,
+    MIQP,
     Unsupported
 };
 
