@@ -77,7 +77,7 @@ MIQPSolution MIQPSolver::solve(const Problem& problem) const {
     std::vector<double> incumbent_x;
 
     while (!open.empty() && out.nodes_explored<max_nodes_) {
-        Node node=std::move(const_cast<Node&>(open.top())); open.pop();
+        Node node=open.top(); open.pop();
         QPSolver qp(tolerance_,10000);
         const QPSolution r=qp.solve(node.p);
         ++out.nodes_explored;
