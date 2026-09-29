@@ -27,6 +27,7 @@ add_library(
 
     src/matrix/sparse_matrix.cpp
     src/numerics/lu_factorization.cpp
+    src/numerics/forrest_tomlin.cpp
 
     src/presolve/presolve.cpp
     src/presolve/scaling.cpp
@@ -42,6 +43,10 @@ add_library(
     src/solver/pdhg.cpp
     src/solver/pdlp.cpp
     src/solver/milp.cpp
+    src/solver/milp_cuts.cpp
+    src/solver/reliability_branching.cpp
+    src/solver/feasibility_pump.cpp
+    src/solver/simplex_pivot.cpp
     src/solver/qp.cpp
     src/solver/miqp.cpp
     src/solver/solver_session.cpp
@@ -216,8 +221,13 @@ add_executable(
 target_link_libraries(dent_lp_parser_test PRIVATE dent_core)
 add_test(NAME dent_lp_parser_test COMMAND dent_lp_parser_test)
 
+add_executable(dent_advanced_numerics_test tests/numerics/advanced_numerics_test.cpp)
+target_link_libraries(dent_advanced_numerics_test PRIVATE dent_core)
+add_test(NAME dent_advanced_numerics_test COMMAND dent_advanced_numerics_test)
+
 add_executable(
     dent_lu_factorization_test
+    dent_advanced_numerics_test
     tests/numerics/lu_factorization_test.cpp
 )
 target_link_libraries(dent_lu_factorization_test PRIVATE dent_core)
