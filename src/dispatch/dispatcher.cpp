@@ -31,6 +31,9 @@ const char* solver_method_name(
         case SolverMethod::MILP:
             return "MILP Branch-and-Bound";
 
+        case SolverMethod::MIQP:
+            return "MIQP Branch-and-Bound";
+
         case SolverMethod::Unsupported:
         default:
             return "Unsupported";
@@ -199,7 +202,7 @@ DispatchDecision AdaptiveDispatcher::dispatch_quadratic_program(
     if (fingerprint.is_mixed_integer) {
 
         decision.method =
-            SolverMethod::Unsupported;
+            SolverMethod::MIQP;
 
         decision.solver_name =
             solver_method_name(
@@ -207,8 +210,8 @@ DispatchDecision AdaptiveDispatcher::dispatch_quadratic_program(
             );
 
         decision.reason =
-            "Mixed-integer quadratic programming "
-            "is not yet supported.";
+            "Mixed-integer quadratic objective detected; "
+            "MIQP branch-and-bound selected.";
 
         decision.use_cpu = true;
         decision.use_gpu = false;
