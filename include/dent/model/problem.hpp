@@ -86,6 +86,16 @@ public:
         double upper_bound
     );
 
+    void set_constraint_sense(
+        int constraint,
+        ConstraintSense sense
+    );
+
+    void set_constraint_rhs(
+        int constraint,
+        double rhs
+    );
+
     ObjectiveSense objective_sense() const;
 
     const std::vector<Variable>& variables() const;
