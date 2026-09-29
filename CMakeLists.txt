@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(dent VERSION 0.11.0 LANGUAGES CXX)
+project(dent VERSION 0.12.0 LANGUAGES CXX)
+
+option(DENT_ENABLE_CUDA "Build optional CUDA backend" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,6 +20,7 @@ add_library(
     src/model/problem.cpp
 
     src/matrix/sparse_matrix.cpp
+    src/numerics/lu_factorization.cpp
 
     src/presolve/presolve.cpp
     src/presolve/scaling.cpp
@@ -37,9 +40,11 @@ add_library(
     src/solver/solver_session.cpp
 
     src/warmstart/warm_start.cpp
+    src/verification/certificate_verifier.cpp
 
     src/io/model_parser.cpp
     src/io/mps_parser.cpp
+    src/io/lp_parser.cpp
     src/io/interactive_builder.cpp
 )
 
@@ -459,3 +464,13 @@ foreach(test_target
     )
 
 endforeach()
+
+if(DENT_ENABLE_CUDA)
+    enable_language(CUDA)
+    add_library(dent_cuda STATIC
+        src/backend/cuda_kernels.cu
+    )
+    set_target_properties(dent_cuda PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    target_link_libraries(dent_cuda PUBLIC CUDA::cudart)
+    target_include_directories(dent_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endif()
