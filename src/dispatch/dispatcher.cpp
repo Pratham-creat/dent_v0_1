@@ -248,7 +248,7 @@ DispatchDecision AdaptiveDispatcher::dispatch_mixed_integer(
         fingerprint.has_quadratic_objective
     ) {
         decision.method =
-            SolverMethod::Unsupported;
+            SolverMethod::MIQP;
 
         decision.solver_name =
             solver_method_name(
@@ -256,8 +256,8 @@ DispatchDecision AdaptiveDispatcher::dispatch_mixed_integer(
             );
 
         decision.reason =
-            "Mixed-integer quadratic programming "
-            "is not yet supported.";
+            "Mixed-integer quadratic objective detected; "
+            "MIQP branch-and-bound selected.";
 
         decision.use_cpu = true;
         decision.use_gpu = false;
