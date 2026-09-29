@@ -1,6 +1,9 @@
 #include "dent/solver/milp.hpp"
 
 #include "dent/solver/dual_simplex.hpp"
+#include "dent/solver/milp_cuts.hpp"
+#include "dent/solver/reliability_branching.hpp"
+#include "dent/solver/feasibility_pump.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1803,6 +1806,35 @@ MILPSolver::solve_node_lp(
         simplex.solve(
             node.relaxation
         );
+
+    if (node.solve_result.status == SolveStatus::Optimal &&
+        !node.solve_result.variable_values.empty()) {
+        MILPCutManager cut_manager(tolerance_);
+        Problem cut_model = node.relaxation;
+        auto cuts = cut_manager.generate(cut_model, node.solve_result.variable_values);
+        int added = 0;
+        if (!cuts.empty()) {
+            cut_manager.add_all(cut_model, cuts, &added);
+            if (added > 0) {
+                SimplexSolver cut_simplex(tolerance_, 2000);
+                auto cut_result = cut_simplex.solve(cut_model);
+                if (cut_result.status == SolveStatus::Optimal &&
+                    cut_result.objective_value != node.solve_result.objective_value) {
+                    node.solve_result = cut_result;
+                    result.cuts_generated += static_cast<int>(cuts.size());
+                    result.cuts_added += added;
+                }
+            }
+        }
+
+        FeasibilityPump pump(8, tolerance_);
+        auto fp = pump.solve(problem, node.solve_result.variable_values);
+        if (fp.feasible && check_feasibility(problem, fp.values) &&
+            is_integral_solution(problem, fp.values)) {
+            ++result.heuristic_attempts;
+            ++result.heuristic_incumbents;
+        }
+    }
 
     ++result.lp_solves;
 
