@@ -48,6 +48,7 @@ add_library(
     src/solver/milp_cuts.cpp
     src/solver/reliability_branching.cpp
     src/solver/feasibility_pump.cpp
+    src/solver/parallel_milp.cpp
     src/solver/simplex_pivot.cpp
     src/solver/qp.cpp
     src/solver/miqp.cpp
