@@ -11,6 +11,7 @@
 #include "dent/model/problem.hpp"
 #include "dent/solver/interior_point.hpp"
 #include "dent/solver/milp.hpp"
+#include "dent/solver/miqp.hpp"
 #include "dent/solver/pdhg.hpp"
 #include "dent/solver/pdlp.hpp"
 #include "dent/solver/qp.hpp"
@@ -260,6 +261,10 @@ InternalResult solve_problem(
                 method = dent::SolverMethod::MILP;
                 solver_name = "MILP";
                 break;
+            case DENT_SOLVER_MIQP:
+                method = dent::SolverMethod::MIQP;
+                solver_name = "MIQP";
+                break;
 
             default:
                 throw std::invalid_argument(
@@ -423,6 +428,37 @@ InternalResult solve_problem(
 
             result.iterations =
                 solved.iterations;
+
+            result.message =
+                solved.message;
+
+            break;
+        }
+
+
+        case dent::SolverMethod::MIQP:
+        {
+            dent::MIQPSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-8,
+                max_iterations > 0 ? max_iterations : 1000
+            );
+
+            const dent::MIQPSolution solved =
+                solver.solve(
+                    problem
+                );
+
+            result.status =
+                solved.status;
+
+            result.objective =
+                solved.objective_value;
+
+            result.values =
+                solved.variable_values;
+
+            result.iterations =
+                solved.nodes_explored;
 
             result.message =
                 solved.message;
