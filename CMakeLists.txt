@@ -232,7 +232,6 @@ add_test(NAME dent_advanced_numerics_test COMMAND dent_advanced_numerics_test)
 
 add_executable(
     dent_lu_factorization_test
-    dent_advanced_numerics_test
     tests/numerics/lu_factorization_test.cpp
 )
 target_link_libraries(dent_lu_factorization_test PRIVATE dent_core)
@@ -246,9 +245,6 @@ target_link_libraries(dent_certificate_verifier_test PRIVATE dent_core)
 add_test(NAME dent_certificate_verifier_test COMMAND dent_certificate_verifier_test)
 add_executable(
     dent_model_parser_test
-    dent_lp_parser_test
-    dent_lu_factorization_test
-    dent_certificate_verifier_test
     tests/io/model_parser_test.cpp
 )
 
@@ -303,7 +299,6 @@ set_tests_properties(
 
 add_executable(
     dent_milp_branching_test
-    dent_miqp_test
     tests/solver/milp_branching_test.cpp
 )
 
@@ -320,6 +315,18 @@ add_test(
 
 set_tests_properties(
     dent_milp_branching_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+add_executable(
+    dent_miqp_test
+    tests/solver/miqp_test.cpp
+)
+target_link_libraries(dent_miqp_test PRIVATE dent_core)
+add_test(NAME dent_miqp_test COMMAND dent_miqp_test)
+set_tests_properties(
+    dent_miqp_test
     PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
@@ -509,6 +516,11 @@ add_custom_command(
 
 
 foreach(test_target
+    dent_lp_parser_test
+    dent_advanced_numerics_test
+    dent_lu_factorization_test
+    dent_certificate_verifier_test
+    dent_miqp_test
     dent_solver_industry_test
     dent_interior_point_test
     dent_model_parser_test
