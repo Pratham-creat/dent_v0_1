@@ -127,7 +127,7 @@ Problem MPSParser::parse_file(const std::string& filename) {
     }
 
     for(const auto& b:bounds){
-        const int j=column_index.at(b.column), k=upper(b.type);
+        const int j=column_index.at(b.column); const std::string k=upper(b.type);
         if(k=="BV") problem.set_variable_type(j,VariableType::Binary);
         else if(k=="FX") problem.set_variable_bounds(j,b.value,b.value);
         else if(k=="LO") problem.set_variable_bounds(j,b.value,0.0);
