@@ -359,7 +359,7 @@ int main() {
     }
 
     /*
-     * MIQP -> Unsupported.
+     * MIQP -> MIQP branch-and-bound.
      */
     {
         dent::Problem problem =
@@ -396,8 +396,8 @@ int main() {
 
         check(
             decision.method ==
-                dent::SolverMethod::Unsupported,
-            "MIQP -> Unsupported"
+                dent::SolverMethod::MIQP,
+            "MIQP -> MIQP Branch-and-Bound"
         );
     }
 
