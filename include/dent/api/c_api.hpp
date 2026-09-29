@@ -81,7 +81,8 @@ enum dent_solver_method
     DENT_SOLVER_PDHG = 4,
     DENT_SOLVER_PDLP = 5,
     DENT_SOLVER_QP = 6,
-    DENT_SOLVER_MILP = 7
+    DENT_SOLVER_MILP = 7,
+    DENT_SOLVER_MIQP = 8
 };
 
 
