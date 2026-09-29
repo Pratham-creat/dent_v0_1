@@ -168,17 +168,20 @@ Problem LPParser::parse_file(const std::string& filename) {
         }
 
         if (section == Section::Bounds) {
-            std::string s = lower(line);
-            const auto toks = tokenize(s);
-            if (toks.size() == 3 && toks[1] == "<=") {
+            const auto toks = tokenize(line);
+            std::vector<std::string> op;
+            for (const auto& t : toks) op.push_back(lower(t));
+            if (op.size() == 2 && op[1] == "free") {
+                bounds[toks[0]] = {0.0, 0.0};
+            } else if (op.size() == 3 && op[1] == "<=") {
                 bounds[toks[2]] = {std::stod(toks[0]), 0.0};
-            } else if (toks.size() == 3 && toks[1] == ">=") {
+            } else if (op.size() == 3 && op[1] == ">=") {
                 bounds[toks[0]] = {std::stod(toks[2]), 0.0};
-            } else if (toks.size() == 5 && toks[1] == "<=" && toks[3] == "<=") {
+            } else if (op.size() == 5 && op[1] == "<=" && op[3] == "<=") {
                 bounds[toks[2]] = {std::stod(toks[0]), std::stod(toks[4])};
-            } else if (toks.size() == 4 && toks[1] == "<=" && toks[2] == "<=") {
+            } else if (op.size() == 4 && op[1] == "<=" && op[2] == "<=") {
                 bounds[toks[0]] = {0.0, std::stod(toks[3])};
-            } else if (toks.size() == 3 && toks[1] == "=") {
+            } else if (op.size() == 3 && op[1] == "=") {
                 const double v = std::stod(toks[2]);
                 bounds[toks[0]] = {v, v};
             } else {
