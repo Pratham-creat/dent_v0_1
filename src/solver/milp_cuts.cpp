@@ -1,6 +1,7 @@
 #include "dent/solver/milp_cuts.hpp"
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 namespace dent {
 GeneratedCut MILPCutManager::rounded_integer_row(const Problem&p,int i)const{
     GeneratedCut c{CutKind::Gomory,"__dent_gomory_"+std::to_string(i),ConstraintSense::LessEqual,std::floor(p.constraints()[i].rhs),p.matrix()[i]};
