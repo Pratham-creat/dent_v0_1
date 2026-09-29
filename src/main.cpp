@@ -3,6 +3,7 @@
 #include "dent/io/interactive_builder.hpp"
 #include "dent/io/model_parser.hpp"
 #include "dent/io/mps_parser.hpp"
+#include "dent/io/lp_parser.hpp"
 #include "dent/model/problem.hpp"
 #include "dent/presolve/presolve.hpp"
 #include "dent/solver/dual_simplex.hpp"
@@ -433,6 +434,8 @@ int main(
 
             if (extension == ".mps" || extension == ".qps") {
                 original_problem = MPSParser::parse_file(model_path);
+            } else if (extension == ".lp") {
+                original_problem = LPParser::parse_file(model_path);
             } else {
                 original_problem = ModelParser::parse_file(model_path);
             }
