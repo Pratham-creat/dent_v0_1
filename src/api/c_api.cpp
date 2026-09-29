@@ -7,6 +7,9 @@
 #include "dent/dispatch/dispatcher.hpp"
 #include "dent/dispatch/fingerprint.hpp"
 #include "dent/io/model_parser.hpp"
+#include "dent/io/mps_parser.hpp"
+#include "dent/io/lp_parser.hpp"
+#include "dent/solver/dual_simplex.hpp"
 #include "dent/io/model_parser.hpp"
 #include "dent/model/problem.hpp"
 #include "dent/solver/interior_point.hpp"
@@ -20,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <cctype>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -499,16 +503,27 @@ InternalResult solve_problem(
 
 
         case dent::SolverMethod::DualSimplex:
+        {
+            dent::DualSimplexSolver solver(
+                tolerance > 0.0 ? tolerance : 1e-9,
+                max_iterations > 0 ? max_iterations : 10000
+            );
+            const dent::SolveResult solved = solver.solve(problem);
+            result.status = solved.status;
+            result.objective = solved.objective_value;
+            result.values = solved.variable_values;
+            result.iterations = solved.iterations;
+            result.message = solved.message;
+            break;
+        }
+
         case dent::SolverMethod::Unsupported:
         default:
         {
-            result.status =
-                dent::SolveStatus::Unsupported;
-
+            result.status = dent::SolveStatus::Unsupported;
             result.message =
                 "The requested solver is not exposed by "
                 "the current native solve bridge.";
-
             break;
         }
     }
@@ -906,10 +921,18 @@ dent_model_create_from_file(
 
     try
     {
-        dent::Problem problem =
-            dent::ModelParser::parse_file(
-                model_path
-            );
+        const std::string path(model_path);
+        std::string ext;
+        const std::size_t dot = path.find_last_of('.');
+        if (dot != std::string::npos) {
+            ext = path.substr(dot);
+            for (char& ch : ext) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+
+        dent::Problem problem;
+        if (ext == ".mps" || ext == ".qps") problem = dent::MPSParser::parse_file(path);
+        else if (ext == ".lp") problem = dent::LPParser::parse_file(path);
+        else problem = dent::ModelParser::parse_file(path);
 
         dent_model_t* model =
             new dent_model_t(
@@ -1413,10 +1436,17 @@ dent_solve_file_json(
 
     try
     {
-        const dent::Problem problem =
-            dent::ModelParser::parse_file(
-                model_path
-            );
+        const std::string path(model_path);
+        std::string ext;
+        const std::size_t dot = path.find_last_of('.');
+        if (dot != std::string::npos) {
+            ext = path.substr(dot);
+            for (char& ch : ext) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+        dent::Problem problem;
+        if (ext == ".mps" || ext == ".qps") problem = dent::MPSParser::parse_file(path);
+        else if (ext == ".lp") problem = dent::LPParser::parse_file(path);
+        else problem = dent::ModelParser::parse_file(path);
 
         const InternalResult result =
             solve_problem(
