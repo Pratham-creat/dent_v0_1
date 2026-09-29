@@ -14,7 +14,7 @@ GeneratedCut MILPCutManager::mir_integer_row(const Problem&p,int i)const{
 GeneratedCut MILPCutManager::cover_row(const Problem&p,int i,const std::vector<double>&x)const{
     std::vector<double>a(p.variables().size(),0);int count=0;double w=0;
     for(size_t j=0;j<a.size();++j)if(p.variables()[j].type==VariableType::Binary&&p.matrix()[i][j]>tolerance_&&x[j]>tolerance_){a[j]=1;w+=p.matrix()[i][j];++count;}
-    return {CutKind::Cover,"__dent_cover_"+std::to_string(i),ConstraintSense::LessEqual,std::max(0,count-1),a};
+    return {CutKind::Cover,"__dent_cover_"+std::to_string(i),ConstraintSense::LessEqual,static_cast<double>(std::max(0,count-1)),a};
 }
 std::vector<GeneratedCut> MILPCutManager::generate(const Problem&p,const std::vector<double>&x)const{
     std::vector<GeneratedCut> out;
