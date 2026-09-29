@@ -3,10 +3,16 @@ cmake_minimum_required(VERSION 3.20)
 project(dent VERSION 0.12.0 LANGUAGES CXX)
 
 option(DENT_ENABLE_CUDA "Build optional CUDA backend" OFF)
+option(DENT_ENABLE_SANITIZERS "Enable ASan/UBSan on supported compilers" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(DENT_ENABLE_SANITIZERS AND NOT MSVC)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
 
 
 # ============================================================
@@ -204,7 +210,30 @@ set_tests_properties(
 )
 
 add_executable(
+    dent_lp_parser_test
+    tests/io/lp_parser_test.cpp
+)
+target_link_libraries(dent_lp_parser_test PRIVATE dent_core)
+add_test(NAME dent_lp_parser_test COMMAND dent_lp_parser_test)
+
+add_executable(
+    dent_lu_factorization_test
+    tests/numerics/lu_factorization_test.cpp
+)
+target_link_libraries(dent_lu_factorization_test PRIVATE dent_core)
+add_test(NAME dent_lu_factorization_test COMMAND dent_lu_factorization_test)
+
+add_executable(
+    dent_certificate_verifier_test
+    tests/verification/certificate_verifier_test.cpp
+)
+target_link_libraries(dent_certificate_verifier_test PRIVATE dent_core)
+add_test(NAME dent_certificate_verifier_test COMMAND dent_certificate_verifier_test)
+add_executable(
     dent_model_parser_test
+    dent_lp_parser_test
+    dent_lu_factorization_test
+    dent_certificate_verifier_test
     tests/io/model_parser_test.cpp
 )
 
@@ -492,6 +521,7 @@ endforeach()
 
 if(DENT_ENABLE_CUDA)
     enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
     add_library(dent_cuda STATIC
         src/backend/cuda_kernels.cu
     )
@@ -499,3 +529,12 @@ if(DENT_ENABLE_CUDA)
     target_link_libraries(dent_cuda PUBLIC CUDA::cudart)
     target_include_directories(dent_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
+
+
+include(GNUInstallDirs)
+install(TARGETS dent dent_core dent_api
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
