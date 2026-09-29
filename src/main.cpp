@@ -2,6 +2,7 @@
 #include "dent/dispatch/fingerprint.hpp"
 #include "dent/io/interactive_builder.hpp"
 #include "dent/io/model_parser.hpp"
+#include "dent/io/mps_parser.hpp"
 #include "dent/model/problem.hpp"
 #include "dent/presolve/presolve.hpp"
 #include "dent/solver/dual_simplex.hpp"
@@ -14,6 +15,8 @@
 
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -415,10 +418,24 @@ int main(
                 << argv[1]
                 << "\n\n";
 
-            original_problem =
-                ModelParser::parse_file(
-                    argv[1]
+            std::string model_path = argv[1];
+            std::string extension;
+            const std::size_t dot = model_path.find_last_of('.');
+            if (dot != std::string::npos) {
+                extension = model_path.substr(dot);
+                std::transform(
+                    extension.begin(),
+                    extension.end(),
+                    extension.begin(),
+                    [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
                 );
+            }
+
+            if (extension == ".mps" || extension == ".qps") {
+                original_problem = MPSParser::parse_file(model_path);
+            } else {
+                original_problem = ModelParser::parse_file(model_path);
+            }
 
             std::cout
                 << "Model loaded successfully.\n";
