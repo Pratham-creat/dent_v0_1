@@ -37,6 +37,7 @@ add_library(
     src/solver/pdlp.cpp
     src/solver/milp.cpp
     src/solver/qp.cpp
+    src/solver/miqp.cpp
     src/solver/solver_session.cpp
 
     src/warmstart/warm_start.cpp
@@ -258,6 +259,7 @@ set_tests_properties(
 
 add_executable(
     dent_milp_branching_test
+    dent_miqp_test
     tests/solver/milp_branching_test.cpp
 )
 
@@ -282,6 +284,29 @@ set_tests_properties(
 # ------------------------------------------------------------
 # PDHG
 # ------------------------------------------------------------
+
+
+add_executable(
+    dent_miqp_test
+    tests/solver/miqp_test.cpp
+)
+
+target_link_libraries(
+    dent_miqp_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_miqp_test
+    COMMAND dent_miqp_test
+)
+
+set_tests_properties(
+    dent_miqp_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
 add_executable(
     dent_pdhg_test
