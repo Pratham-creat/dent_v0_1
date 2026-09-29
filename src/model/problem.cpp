@@ -213,6 +213,38 @@ void Problem::set_variable_bounds(
         upper_bound;
 }
 
+void Problem::set_constraint_sense(
+    int constraint,
+    ConstraintSense sense
+)
+{
+    if (constraint < 0 ||
+        constraint >= static_cast<int>(constraints_.size())) {
+        throw std::out_of_range(
+            "Problem::set_constraint_sense: "
+            "constraint index out of range"
+        );
+    }
+
+    constraints_[constraint].sense = sense;
+}
+
+void Problem::set_constraint_rhs(
+    int constraint,
+    double rhs
+)
+{
+    if (constraint < 0 ||
+        constraint >= static_cast<int>(constraints_.size())) {
+        throw std::out_of_range(
+            "Problem::set_constraint_rhs: "
+            "constraint index out of range"
+        );
+    }
+
+    constraints_[constraint].rhs = rhs;
+}
+
 ObjectiveSense Problem::objective_sense() const
 {
     return objective_sense_;
