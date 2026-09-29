@@ -39,6 +39,7 @@ add_library(
     src/warmstart/warm_start.cpp
 
     src/io/model_parser.cpp
+    src/io/mps_parser.cpp
     src/io/interactive_builder.cpp
 )
 
@@ -173,6 +174,28 @@ set_tests_properties(
 # ------------------------------------------------------------
 # Model parser
 # ------------------------------------------------------------
+
+add_executable(
+    dent_mps_parser_test
+    tests/io/mps_parser_test.cpp
+)
+
+target_link_libraries(
+    dent_mps_parser_test
+    PRIVATE
+        dent_core
+)
+
+add_test(
+    NAME dent_mps_parser_test
+    COMMAND dent_mps_parser_test
+)
+
+set_tests_properties(
+    dent_mps_parser_test
+    PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
 add_executable(
     dent_model_parser_test
@@ -415,6 +438,7 @@ foreach(test_target
     dent_solver_industry_test
     dent_interior_point_test
     dent_model_parser_test
+    dent_mps_parser_test
     dent_scaling_test
     dent_milp_branching_test
     dent_pdhg_test
